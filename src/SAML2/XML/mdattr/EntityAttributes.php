@@ -5,8 +5,9 @@ declare(strict_types=1);
 namespace SAML2\XML\mdattr;
 
 use DOMElement;
+use InvalidArgumentException;
 use SAML2\Utils;
-use SAML2\XML\Chunk;
+use SAML2\XML\Assertion;
 use SAML2\XML\saml\Attribute;
 use Webmozart\Assert\Assert;
 
@@ -21,9 +22,9 @@ final class EntityAttributes extends AbstractMdattrElement
     /**
      * Array with child elements.
      *
-     * The elements can be \SAML2\XML\saml\Attribute or \SAML2\XML\Chunk elements.
+     * The elements can be \SAML2\XML\saml\Attribute or \SAML2\XML\Assertion elements.
      *
-     * @var (\SAML2\XML\saml\Attribute|\SAML2\XML\Chunk)[]
+     * @var (\SAML2\XML\saml\Attribute|\SAML2\XML\Assertion)[]
      */
     protected $children = [];
 
@@ -31,7 +32,7 @@ final class EntityAttributes extends AbstractMdattrElement
     /**
      * Create a EntityAttributes element.
      *
-     * @param (\SAML2\XML\Chunk|\SAML2\XML\saml\Attribute)[] $children
+     * @param (\SAML2\XML\saml\Attribute|\SAML2\XML\Assertion)[] $children
      */
     public function __construct(array $children)
     {
@@ -42,7 +43,7 @@ final class EntityAttributes extends AbstractMdattrElement
     /**
      * Collect the value of the children-property
      *
-     * @return (\SAML2\XML\Chunk|\SAML2\XML\saml\Attribute)[]
+     * @return (\SAML2\XML\saml\Attribute|\SAML2\XML\Assertion)[]
      */
     public function getChildren(): array
     {
@@ -53,12 +54,14 @@ final class EntityAttributes extends AbstractMdattrElement
     /**
      * Set the value of the childen-property
      *
-     * @param array $children
+     * @param (\SAML2\XML\saml\Attribute|\SAML2\XML\Assertion)[] $children
      * @return void
+     *
+     * @throws \InvalidArgumentException if $children contains objects of the wrong type
      */
     private function setChildren(array $children): void
     {
-        Assert::allIsInstanceOfAny($children, [Chunk::class, Attribute::class]);
+        Assert::allIsInstanceOfAny($children, [Assertion::class, Attribute::class]);
 
         $this->children = $children;
     }
@@ -67,14 +70,14 @@ final class EntityAttributes extends AbstractMdattrElement
     /**
      * Add the value to the children-property
      *
-     * @param \SAML2\XML\Chunk|\SAML2\XML\saml\Attribute $child
+     * @param \SAML2\XML\saml\Attribute|\SAML2\XML\Assertion $child
      * @return void
      *
-     * @throws \InvalidArgumentException if assertions are false
+     * @throws \InvalidArgumentException if $child is of the wrong type
      */
     public function addChild($child): void
     {
-        Assert::isInstanceOfAny($child, [Chunk::class, Attribute::class]);
+        Assert::isInstanceOfAny($child, [Assertion::class, Attribute::class]);
 
         $this->children[] = $child;
     }
@@ -97,8 +100,10 @@ final class EntityAttributes extends AbstractMdattrElement
         foreach (Utils::xpQuery($xml, './saml_assertion:Attribute|./saml_assertion:Assertion') as $node) {
             if ($node->localName === 'Attribute') {
                 $children[] = Attribute::fromXML($node);
+            } elseif ($node->localName === 'Assertion') {
+                $children[] = new Assertion($node);
             } else {
-                $children[] = new Chunk($node);
+                throw new \InvalidArgumentException('Illegal content in mdattr:EntityAttributes message.');
             }
         }
 
