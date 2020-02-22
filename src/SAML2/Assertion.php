@@ -248,13 +248,8 @@ class Assertion extends SignedElement
      */
     public function __construct(DOMElement $xml = null)
     {
-        // Create an Issuer
-        $issuer = new Issuer();
-        $issuer->setValue('');
-
         $this->id = Utils::getContainer()->generateId();
         $this->issueInstant = Temporal::getTime();
-        $this->issuer = $issuer;
         $this->authnInstant = Temporal::getTime();
 
         if ($xml === null) {
@@ -279,7 +274,7 @@ class Assertion extends SignedElement
             throw new \Exception('Missing <saml:Issuer> in assertion.');
         }
 
-        $this->issuer = new Issuer($issuer[0]);
+        $this->issuer = Issuer::fromXML($issuer[0]);
 
         $this->parseSubject($xml);
         $this->parseConditions($xml);
@@ -323,7 +318,7 @@ class Assertion extends SignedElement
                 /* The NameID element is encrypted. */
                 $this->encryptedNameId = $nameId;
             } else {
-                $this->nameId = new NameID($nameId);
+                $this->nameId = NameID::fromXML($nameId);
             }
         }
 
@@ -569,14 +564,13 @@ class Assertion extends SignedElement
                 $eptiNameId = Utils::xpQuery($eptiAttributeValue, './saml_assertion:NameID');
 
                 if (count($eptiNameId) === 1) {
-                    $this->attributes[$attributeName][] = new NameID($eptiNameId[0]);
+                    $this->attributes[$attributeName][] = NameID::fromXML($eptiNameId[0]);
                 } else {
                     /* Fall back for legacy IdPs sending string value (e.g. SSP < 1.15) */
                     Utils::getContainer()->getLogger()->warning(
                         sprintf("Attribute %s (EPTI) value %d is not an XML NameId", $attributeName, $index)
                     );
-                    $nameId = new NameID();
-                    $nameId->setValue($eptiAttributeValue->textContent);
+                    $nameId = new NameID($eptiAttributeValue->textContent);
                     $this->attributes[$attributeName][] = $nameId;
                 }
             }
@@ -848,7 +842,7 @@ class Assertion extends SignedElement
 
         $nameId = Utils::decryptElement($this->encryptedNameId, $key, $blacklist);
         Utils::getContainer()->debugMessage($nameId, 'decrypt');
-        $this->nameId = new NameID($nameId);
+        $this->nameId = NameID::fromXML($nameId);
 
         $this->encryptedNameId = null;
     }
@@ -1431,7 +1425,7 @@ class Assertion extends SignedElement
      *
      * The certificates should be strings with the PEM encoded data.
      *
-     * @param array $certificates An array of certificates.
+     * @param string[] $certificates An array of certificates.
      * @return void
      */
     public function setCertificates(array $certificates): void
@@ -1443,7 +1437,7 @@ class Assertion extends SignedElement
     /**
      * Retrieve the certificates that are included in the assertion.
      *
-     * @return array An array of certificates.
+     * @return string[] An array of certificates.
      */
     public function getCertificates(): array
     {

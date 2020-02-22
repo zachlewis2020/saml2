@@ -21,21 +21,21 @@ final class SubjectConfirmation extends AbstractSamlElement
      *
      * @var string
      */
-    private $Method;
+    protected $Method;
 
     /**
      * The NameID of the entity that can use this element to verify the Subject.
      *
      * @var \SAML2\XML\saml\NameID|null
      */
-    private $NameID = null;
+    protected $NameID = null;
 
     /**
      * SubjectConfirmationData element with extra data for verification of the Subject.
      *
      * @var \SAML2\XML\saml\SubjectConfirmationData|null
      */
-    private $SubjectConfirmationData = null;
+    protected $SubjectConfirmationData = null;
 
 
     /**
@@ -62,8 +62,6 @@ final class SubjectConfirmation extends AbstractSamlElement
      */
     public function getMethod(): string
     {
-        Assert::notEmpty($this->Method);
-
         return $this->Method;
     }
 
@@ -131,15 +129,14 @@ final class SubjectConfirmation extends AbstractSamlElement
      *
      * @param \DOMElement $xml The XML element we should load
      * @return self
+     * @throws \InvalidArgumentException if the qualified name of the supplied element is wrong
      */
     public static function fromXML(DOMElement $xml): object
     {
         Assert::same($xml->localName, 'SubjectConfirmation');
         Assert::same($xml->namespaceURI, SubjectConfirmation::NS);
 
-        if (!$xml->hasAttribute('Method')) {
-            throw new \Exception('SubjectConfirmation element without Method attribute.');
-        }
+        Assert::true($xml->hasAttribute('Method'), 'SubjectConfirmation element without Method attribute.');
         $Method = $xml->getAttribute('Method');
 
         /** @var \DOMElement[] $nid */
@@ -152,7 +149,7 @@ final class SubjectConfirmation extends AbstractSamlElement
 
         return new self(
             $Method,
-            empty($nid) ? null : new NameID($nid[0]),
+            empty($nid) ? null : NameID::fromXML($nid[0]),
             empty($scd) ? null : SubjectConfirmationData::fromXML($scd[0])
         );
     }
@@ -163,18 +160,11 @@ final class SubjectConfirmation extends AbstractSamlElement
      *
      * @param  \DOMElement|null $parent The parent element we should append this element to.
      * @return \DOMElement This element, as XML.
-     *
-     * @throws \InvalidArgumentException if assertions are false
      */
-    public function toXML(?DOMElement $parent = null): DOMElement
+    public function toXML(DOMElement $parent = null): DOMElement
     {
-        Assert::notEmpty($this->Method, "Cannot convert SubjectConfirmation to XML without a Method set.");
-
         $e = $this->instantiateParentElement($parent);
-
-        /** @psalm-suppress PossiblyNullArgument */
         $e->setAttribute('Method', $this->Method);
-
         if ($this->NameID !== null) {
             $this->NameID->toXML($e);
         }
