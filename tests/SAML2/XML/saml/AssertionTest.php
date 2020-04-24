@@ -31,7 +31,16 @@ class AssertionTest extends MockeryTestCase
         // Create an assertion
         $assertion = new Assertion();
         $assertion->setIssuer($issuer);
-        $assertion->setValidAudiences(['audience1', 'audience2']);
+        $assertion->setConditions(
+            null,
+            null,
+            [],
+            [
+                new AudienceRestriction(
+                    ['audience1', 'audience2']
+                )
+            ]
+        );
         $assertion->setAuthnContextClassRef('someAuthnContext');
 
         // Marshall it to a \DOMElement
@@ -96,10 +105,15 @@ XML;
         $this->assertFalse($assertion->wasSignedAtConstruction());
 
         // Test for valid audiences
-        $assertionValidAudiences = $assertion->getValidAudiences();
-        $this->assertCount(2, $assertionValidAudiences);
-        $this->assertEquals('audience1', $assertionValidAudiences[0]);
-        $this->assertEquals('audience2', $assertionValidAudiences[1]);
+        $conditions = $assertion->getConditions();
+        $this->assertNotNull($conditions);
+
+        $audienceRestriction = $conditions->getAudienceRestriction();
+        $this->assertCount(1, $audienceRestriction);
+
+        $restriction1 = array_pop($audienceRestriction);
+        $this->assertCount(2, $restriction1->getAudience());
+        $this->assertEquals(['audience1', 'audience2'], $restriction1->getAudience());
 
         // Test for Authenticating Authorities
         $assertionAuthenticatingAuthorities = $assertion->getAuthenticatingAuthority();
@@ -121,7 +135,18 @@ XML;
         $assertion = new Assertion();
 
         $assertion->setIssuer($issuer);
-        $assertion->setValidAudiences(['audience1', 'audience2']);
+        $assertion->setConditions(
+            new Conditions(
+                1234567880,
+                1234567990,
+                [],
+                [
+                    new AudienceRestriction(
+                        ['audience1', 'audience2']
+                    )
+                ]
+            )
+        );
 
         $this->assertNull($assertion->getAuthnContextClassRef());
 
@@ -132,8 +157,6 @@ XML;
 
         $assertion->setIssueInstant(1234567890);
         $assertion->setAuthnInstant(1234567890 - 1);
-        $assertion->setNotBefore(1234567890 - 10);
-        $assertion->setNotOnOrAfter(1234567890 + 100);
         $assertion->setSessionNotOnOrAfter(1234568890 + 200);
 
         $assertion->setSessionIndex("idx1");
@@ -150,13 +173,13 @@ XML;
         $assertionElement = $assertion->toXML()->ownerDocument->saveXML();
 
         $assertionToVerify = new Assertion(DOMDocumentFactory::fromString($assertionElement)->documentElement);
+        $conditions = $assertionToVerify->getConditions();
+        $this->assertNotNull($conditions);
 
         $this->assertEquals('/relative/path/to/document.xml', $assertionToVerify->getAuthnContextDeclRef());
         $this->assertEquals('_123abc', $assertionToVerify->getId());
         $this->assertEquals(1234567890, $assertionToVerify->getIssueInstant());
         $this->assertEquals(1234567889, $assertionToVerify->getAuthnInstant());
-        $this->assertEquals(1234567880, $assertionToVerify->getNotBefore());
-        $this->assertEquals(1234567990, $assertionToVerify->getNotOnOrAfter());
         $this->assertEquals(1234569090, $assertionToVerify->getSessionNotOnOrAfter());
 
         $this->assertEquals('idx1', $assertionToVerify->getSessionIndex());
@@ -188,7 +211,16 @@ XML;
         $assertion = new Assertion();
 
         $assertion->setIssuer($issuer);
-        $assertion->setValidAudiences(['audience1', 'audience2']);
+        $assertion->setConditions(
+            null,
+            null,
+            [],
+            [
+                new AudienceRestriction(
+                    ['audience1', 'audience2']
+                )
+            ]
+        );
 
         $assertion->setAuthnContextClassRef('someAuthnContext');
 
@@ -255,7 +287,16 @@ XML;
         $assertion = new Assertion();
 
         $assertion->setIssuer($issuer);
-        $assertion->setValidAudiences(['audience1', 'audience2']);
+        $assertion->setConditions(
+            null,
+            null,
+            [],
+            [
+                new AudienceRestriction(
+                    ['audience1', 'audience2']
+                )
+            ]
+        );
 
         $assertion->setAuthnContextClassRef('someAuthnContext');
 
@@ -1543,10 +1584,19 @@ XML;
         $document  = DOMDocumentFactory::fromString($xml);
 
         $assertion = new Assertion($document->documentElement);
+        $conditions = $assertion->getConditions();
+        $this->assertNotNull($conditions);
 
-        $audienceRestrictions = $assertion->getValidAudiences();
+        $audienceRestrictions = $conditions->getAudienceRestriction();
         $this->assertCount(1, $audienceRestrictions);
-        $this->assertEquals('audience1', $audienceRestrictions[0]);
+
+        $restriction1 = $audienceRestrictions[0];
+        $this->assertCount(1, $restriction1->getAudience());
+        $this->assertEquals(['audience1'], $restriction1->getAudience());
+
+        $restriction2 = $audienceRestrictions[1];
+        $this->assertCount(2, $restriction2->getAudience());
+        $this->assertEquals(['audience2', 'audience1'], $restriction1->getAudience());
     }
 
 
@@ -1909,7 +1959,18 @@ XML;
         // Create an assertion
         $assertion = new Assertion();
         $assertion->setIssuer($issuer);
-        $assertion->setValidAudiences(['audience1', 'audience2']);
+        $assertion->setConditions(
+            new Conditions(
+                null,
+                null,
+                [],
+                [
+                    new AudienceRestriction(
+                        ['audience1', 'audience2']
+                    )
+                ]
+            )
+        );
         $assertion->setAuthnContextClassRef('someAuthnContext');
 
         $nameId = new NameID("just_a_basic_identifier", null, null, Constants::NAMEID_TRANSIENT);
