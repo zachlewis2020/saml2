@@ -177,8 +177,8 @@ final class AuthnStatement extends AbstractStatement
      * Convert XML into a AuthnContext
      *
      * @param \DOMElement $xml The XML element we should load
-     *
      * @return \SAML2\XML\saml\AuthnStatement
+     *
      * @throws \SAML2\Exception\InvalidDOMElementException if the qualified name of the supplied element is wrong
      * @throws \SAML2\Exception\MissingElementException if one of the mandatory child-elements is missing
      * @throws \Exception if the authentication instant is not a valid timestamp.
