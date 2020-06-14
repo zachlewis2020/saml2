@@ -7,7 +7,7 @@ namespace SAML2\XML\saml;
 use DOMElement;
 use SAML2\Exception\InvalidDOMElementException;
 use SAML2\Utils;
-use Webmozart\Assert\Assert;
+use SimpleSAML\Assert\Assert;
 
 /**
  * Class representing SAML2 SubjectLocality
