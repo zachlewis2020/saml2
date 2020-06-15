@@ -138,8 +138,10 @@ XML
     public function testUnmarshalling(): void
     {
         $aq = AttributeQuery::fromXML($this->document->documentElement);
+
         /** @psalm-var \SAML2\XML\saml\Issuer $issuer */
         $issuer = $aq->getIssuer();
+
         $subject = $aq->getSubject();
         /** @psalm-var \SAML2\XML\saml\NameID $identifier */
         $identifier = $subject->getIdentifier();

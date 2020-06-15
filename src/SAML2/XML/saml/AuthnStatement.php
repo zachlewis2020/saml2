@@ -174,7 +174,7 @@ final class AuthnStatement extends AbstractStatement
 
 
     /**
-     * Convert XML into a AuthnContext
+     * Convert XML into an AuthnStatement
      *
      * @param \DOMElement $xml The XML element we should load
      * @return \SAML2\XML\saml\AuthnStatement

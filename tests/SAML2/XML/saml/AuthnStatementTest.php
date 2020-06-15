@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace SAML2\XML\saml;
 
-use InvalidArgumentException;
+use Exception;
 use PHPUnit\Framework\TestCase;
 use SAML2\Constants;
 use SAML2\DOMDocumentFactory;
 use SAML2\Exception\MissingElementException;
 use SAML2\Utils;
+use SimpleSAML\Assert\AssertionFailedException;
 
 /**
  * Class \SAML2\XML\saml\AuthnStatementTest
@@ -126,7 +127,7 @@ XML
         $document = $this->document->documentElement;
         $document->removeAttribute('AuthnInstant');
 
-        $this->expectException(AssertionFailedException::class);
+        $this->expectException(MissingAttributeException::class);
         $this->expectExceptionMessage("Missing 'AuthnInstant' attribute on saml:AuthnStatement.");
 
         AuthnStatement::fromXML($document);
@@ -138,8 +139,9 @@ XML
      */
     public function testMoreThanOneAuthnContextThrowsException(): void
     {
+        $samlNamespace = Constants::NS_SAML;
         $xml = <<<XML
-<saml:AuthnStatement AuthnInstant="2010-03-05T13:34:28Z">
+<saml:AuthnStatement xmlns:saml="{$samlNamespace}" AuthnInstant="2010-03-05T13:34:28Z">
   <saml:AuthnContext>
     <saml:AuthnContextClassRef>someAuthnContext</saml:AuthnContextClassRef>
     <saml:AuthenticatingAuthority>someIdP1</saml:AuthenticatingAuthority>
@@ -152,8 +154,8 @@ XML
 XML;
         $document = DOMDocumentFactory::fromString($xml);
 
-        $this->expectException(Exception::class);
-        $this->expectExceptionMessage("Missing or more than one <saml:AuthnContext> in <saml:AuthnStatement>");
+        $this->expectException(TooManyElementsException::class);
+        $this->expectExceptionMessage("More than one <saml:AuthnContext> in <saml:AuthnStatement>");
 
         AuthnStatement::fromXML($document->documentElement);
     }
@@ -164,14 +166,15 @@ XML;
      */
     public function testMissingAuthnContextThrowsException(): void
     {
+        $samlNamespace = Constants::NS_SAML;
         $xml = <<<XML
-<saml:AuthnStatement AuthnInstant="2010-03-05T13:34:28Z">
+<saml:AuthnStatement xmlns:saml="{$samlNamespace}" AuthnInstant="2010-03-05T13:34:28Z">
 </saml:AuthnStatement>
 XML;
         $document = DOMDocumentFactory::fromString($xml);
 
-        $this->expectException(Exception::class);
-        $this->expectExceptionMessage("Missing or more than one <saml:AuthnContext> in <saml:AuthnStatement>");
+        $this->expectException(MissingElementException::class);
+        $this->expectExceptionMessage("Missing <saml:AuthnContext> in <saml:AuthnStatement>");
 
         AuthnStatement::fromXML($document->documentElement);
     }

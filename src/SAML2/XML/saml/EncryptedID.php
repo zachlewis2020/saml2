@@ -32,7 +32,7 @@ class EncryptedID extends AbstractSamlElement implements EncryptedElementInterfa
      * @psalm-suppress MismatchingDocblockReturnType
      * @psalm-suppress ImplementedReturnTypeMismatch
      */
-    public function decrypt(XMLSecurityKey $key, array $blacklist = []): AbstractXMLElement
+    public function decrypt(XMLSecurityKey $key, array $blacklist = []): IdentifierInterface
     {
         $xml = Utils::decryptElement($this->encryptedData->toXML(), $key, $blacklist);
         $id = implode(':', [$xml->namespaceURI, $xml->localName]);
