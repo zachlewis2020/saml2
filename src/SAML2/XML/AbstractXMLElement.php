@@ -111,8 +111,8 @@ abstract class AbstractXMLElement implements Serializable
      * @param \DOMElement $xml The element where we should search for the attribute.
      * @param string      $name The name of the attribute.
      * @param string|null $default The default to return in case the attribute does not exist and it is optional.
-     * @return string|null
-     * @throws \SimpleSAML\Assert\AssertionFailedException if the attribute is missing from the element
+     * @return (func_num_args() is 2 ? string : string|null)
+     * @throws \SAML2\Exception\MissingAttributeException if the attribute is missing from the element
      */
     public static function getAttribute(DOMElement $xml, string $name, ?string $default = ''): ?string
     {
