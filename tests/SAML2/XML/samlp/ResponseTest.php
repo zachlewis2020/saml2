@@ -127,7 +127,10 @@ XML;
         $fixtureResponseDom = DOMDocumentFactory::fromString($xml);
         $request            = Response::fromXML($fixtureResponseDom->documentElement);
 
-        $requestXml = $requestDocument = $request->toXML()->C14N();
+        /** @psalm-var \DOMDocument $e->ownerDocument */
+        $e = $request->toXML();
+
+        $requestXml = $requestDocument = $e->ownerDocument->C14N();
         $fixtureXml = $fixtureResponseDom->C14N();
 
         $this->assertXmlStringEqualsXmlString(

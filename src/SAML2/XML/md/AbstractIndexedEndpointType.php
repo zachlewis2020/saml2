@@ -51,7 +51,7 @@ abstract class AbstractIndexedEndpointType extends AbstractEndpointType
      * Initialize an IndexedEndpointType.
      *
      * @param \DOMElement $xml The XML element we should load.
-     * @return self
+     * @return static
      *
      * @throws \SAML2\Exception\InvalidDOMElementException if the qualified name of the supplied element is wrong
      * @throws \SAML2\Exception\MissingAttributeException if the supplied element is missing any of the mandatory attributes
