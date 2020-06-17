@@ -182,7 +182,6 @@ XML
         $this->assertTrue($attrStatement->hasEncryptedAttributes());
     }
 
-
     /**
      * @return void
      */
