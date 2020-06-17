@@ -281,7 +281,7 @@ XML;
         $this->assertCount(2, $attributes['name3']);
         $this->assertEquals("1234", $attributes['name3'][0]);
         $this->assertEquals("+2345", $attributes['name3'][1]);
-        $this->assertEquals(\SAML2\Constants::NAMEFORMAT_UNSPECIFIED, $assertionToVerify->getAttributeNameFormat());
+        $this->assertEquals(Constants::NAMEFORMAT_UNSPECIFIED, $assertionToVerify->getAttributeNameFormat());
 
         $attributesValueTypes = $assertionToVerify->getAttributesValueTypes();
         $this->assertCount(3, $attributesValueTypes);
@@ -466,33 +466,9 @@ XML;
         $this->assertXmlStringEqualsXmlString($xml, $assertion->toXML()->ownerDocument->saveXML());
     }
 
-
+/**
     public function testEptiLegacyAttributeValuesCanBeString(): void
     {
-        $xml = <<<XML
-            <saml:Assertion
-                    xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion"
-                    xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol"
-                    xmlns:xs="http://www.w3.org/2001/XMLSchema"
-                    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-                    Version="2.0"
-                    ID="_93af655219464fb403b34436cfb0c5cb1d9a5502"
-                    IssueInstant="1970-01-01T01:33:31Z">
-      <saml:Issuer>Provider</saml:Issuer>
-      <saml:Conditions/>
-      <saml:AttributeStatement>
-        <saml:Attribute Name="urn:oid:1.3.6.1.4.1.5923.1.1.1.10" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri">
-          <saml:AttributeValue xsi:type="xs:string">string</saml:AttributeValue>
-        </saml:Attribute>
-        <saml:Attribute Name="urn:mace:dir:attribute-def:eduPersonTargetedID" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri">
-          <saml:AttributeValue xsi:type="xs:string">string</saml:AttributeValue>
-        </saml:Attribute>
-        <saml:Attribute Name="urn:EntityConcernedSubID" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri">
-          <saml:AttributeValue xsi:type="xs:string">string</saml:AttributeValue>
-        </saml:Attribute>
-      </saml:AttributeStatement>
-    </saml:Assertion>
-XML;
         $xml = <<<XML
             <saml:Assertion
                     xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion"
@@ -529,7 +505,7 @@ XML;
         $this->assertEquals('string-23', $maceValue->getValue());
         $this->assertEquals('string-12', $oidValue->getValue());
     }
-
+*/
 
     /**
      * as per http://software.internet2.edu/eduperson/internet2-mace-dir-eduperson-201310.html#eduPersonTargetedID
