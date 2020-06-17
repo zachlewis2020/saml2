@@ -137,8 +137,7 @@ XML
     {
         $this->assertTrue($this->identityProviderConfiguration->hasBase64EncodedAttributes());
 
-        $assertion = new Assertion($this->document->firstChild);
-
+        $assertion = Assertion::fromXML($this->document->firstChild);
         $processed = $this->assertionProcessor->process($assertion);
         $attributes = $processed->getAttributes();
 
@@ -160,7 +159,7 @@ XML
      */
     public function testRegularMultivaluedDecoding(): void
     {
-        $assertion = new Assertion($this->document->firstChild);
+        $assertion = Assertion::fromXML($this->document->firstChild);
 
         $processed = $this->assertionProcessor->process($assertion);
         $attributes = $processed->getAttributes();
@@ -180,7 +179,7 @@ XML
      */
     public function testConcatenatedMultivaluedDecoding(): void
     {
-        $assertion = new Assertion($this->document->firstChild);
+        $assertion = Assertion::fromXML($this->document->firstChild);
 
         $processed = $this->assertionProcessor->process($assertion);
         $attributes = $processed->getAttributes();
@@ -201,7 +200,7 @@ XML
      */
     public function testInvalidBase64(): void
     {
-        $assertion = new Assertion($this->document->firstChild);
+        $assertion = Assertion::fromXML($this->document->firstChild);
 
         $parsedAttributes = $assertion->getAttributes();
         $parsedAttributes['urn:mace:dir:attribute-def:displayName'][0] =
@@ -234,7 +233,7 @@ XML
             $this->response
         );
 
-        $assertion = new Assertion($this->document->firstChild);
+        $assertion = Assertion::fromXML($this->document->firstChild);
 
         $processed = $noBase64AssertionProcessor->process($assertion);
         $attributes = $processed->getAttributes();
@@ -253,7 +252,7 @@ XML
      */
     public function testDecodingProcessAssertions(): void
     {
-        $assertion = new Assertion($this->document->firstChild);
+        $assertion = Assertion::fromXML($this->document->firstChild);
         $assertions = new ArrayCollection([$assertion]);
 
         $processed = $this->assertionProcessor->processAssertions($assertions);
