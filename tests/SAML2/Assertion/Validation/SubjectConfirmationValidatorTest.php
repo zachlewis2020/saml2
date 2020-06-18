@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SAML2\XML\saml;
 
 use PHPUnit\Framework\TestCase;
+use Psr\Log\NullLogger;
 use SAML2\Assertion\Exception\InvalidSubjectConfirmationException;
 use SAML2\Assertion\ProcessorBuilder;
 use SAML2\Configuration\Destination;
@@ -70,7 +71,7 @@ final class SubjectConfirmationValidatorTest extends TestCase
         $spentity = 'urn:mace:feide.no:services:no.feide.moodle';
         $destination = 'https://example.org/authentication/sp/consume-assertion';
 
-        $this->logger = new \Psr\Log\NullLogger();
+        $this->logger = new NullLogger();
         $this->validator = new Validator($this->logger);
         $this->destination = new Destination($destination);
         $this->response = new Response(new Status(new StatusCode()));
@@ -124,7 +125,7 @@ XML
      */
     public function testBasicValidation(): void
     {
-        $assertion = new Assertion($this->document->documentElement);
+        $assertion = Assertion::fromXML($this->document->documentElement);
 
         $result = $this->assertionProcessor->validateAssertion($assertion);
         $this->assertNull($result);
@@ -139,7 +140,7 @@ XML
      */
     public function testSubjectConfirmationNonValidation(): void
     {
-        $assertion = new Assertion($this->document->documentElement);
+        $assertion = Assertion::fromXML($this->document->documentElement);
 
         $sc = $assertion->getSubject()->getSubjectConfirmation()[0];
         $scd = $sc->getSubjectConfirmationData();

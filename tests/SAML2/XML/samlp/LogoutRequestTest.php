@@ -45,7 +45,7 @@ class LogoutRequestTest extends MockeryTestCase
     public function setUp(): void
     {
         $xml = <<<XML
-<samlp:LogoutRequest xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" ID="SomeIDValue" Version="2.0" IssueInstant="2010-07-22T11:30:19Z">
+<samlp:LogoutRequest xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" Version="2.0" ID="SomeIDValue" IssueInstant="2010-07-22T11:30:19Z">
   <saml:Issuer>TheIssuer</saml:Issuer>
   <saml:EncryptedID>
     <xenc:EncryptedData xmlns:xenc="http://www.w3.org/2001/04/xmlenc#" Type="http://www.w3.org/2001/04/xmlenc#Element">

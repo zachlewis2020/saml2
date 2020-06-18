@@ -27,8 +27,8 @@ class ArtifactResponseTest extends TestCase
 <samlp:ArtifactResponse
     xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol"
     xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion"
-    ID="_d84a49e5958803dedcff4c984c2b0d95"
     Version="2.0"
+    ID="_d84a49e5958803dedcff4c984c2b0d95"
     IssueInstant="2004-12-05T09:21:59Z"
     InResponseTo="_cce4ee769ed970b501d680f697989d14">
   <saml:Issuer>https://sp.example.com/SAML2</saml:Issuer>
@@ -36,8 +36,8 @@ class ArtifactResponseTest extends TestCase
     <samlp:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Success"/>
   </samlp:Status>
   <samlp:AuthnRequest
-      ID="_306f8ec5b618f361c70b6ffb1480eade"
       Version="2.0"
+      ID="_306f8ec5b618f361c70b6ffb1480eade"
       IssueInstant="2004-12-05T09:21:59Z"
       Destination="https://idp.example.org/SAML2/SSO/Artifact"
       AssertionConsumerServiceURL="https://sp.example.com/SAML2/SSO/Artifact"
