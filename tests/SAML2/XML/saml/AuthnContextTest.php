@@ -6,6 +6,7 @@ namespace SAML2\XML\saml;
 
 use SAML2\Constants;
 use SAML2\DOMDocumentFactory;
+use SAML2\Exception\TooManyElementsException;
 use SAML2\Utils;
 use SimpleSAML\Assert\AssertionFailedException;
 
@@ -242,7 +243,7 @@ XML
         $document->documentElement->appendChild($document->importNode($this->classRef->documentElement, true));
         $document->documentElement->appendChild($document->importNode($this->classRef->documentElement, true));
 
-        $this->expectException(AssertionFailedException::class);
+        $this->expectException(TooManyElementsException::class);
         $this->expectExceptionMessage("More than one <saml:AuthnContextClassRef> found");
 
         AuthnContext::fromXML($document->documentElement);
@@ -258,7 +259,7 @@ XML
         $document->documentElement->appendChild($document->importNode($this->declRef->documentElement, true));
         $document->documentElement->appendChild($document->importNode($this->declRef->documentElement, true));
 
-        $this->expectException(AssertionFailedException::class);
+        $this->expectException(TooManyElementsException::class);
         $this->expectExceptionMessage("More than one <saml:AuthnContextDeclRef> found");
 
         AuthnContext::fromXML($document->documentElement);
@@ -274,7 +275,7 @@ XML
         $document->documentElement->appendChild($document->importNode($this->decl->documentElement, true));
         $document->documentElement->appendChild($document->importNode($this->decl->documentElement, true));
 
-        $this->expectException(AssertionFailedException::class);
+        $this->expectException(TooManyElementsException::class);
         $this->expectExceptionMessage("More than one <saml:AuthnContextDecl> found");
 
         AuthnContext::fromXML($document->documentElement);
