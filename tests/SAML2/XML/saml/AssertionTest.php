@@ -12,6 +12,7 @@ use RobRichards\XMLSecLibs\XMLSecurityKey;
 use SAML2\CertificatesMock;
 use SAML2\Constants;
 use SAML2\DOMDocumentFactory;
+use SAML2\Exception\MissingElementException;
 use SAML2\Exception\TooManyElementsException;
 use SAML2\Utils;
 use SAML2\XML\Chunk;
@@ -965,8 +966,8 @@ XML;
 </saml:Assertion>
 XML;
         $document  = DOMDocumentFactory::fromString($xml);
-        $this->expectException(Exception::class);
-        $this->expectExceptionMessage('Missing or more than one <saml:Issuer> in assertion.');
+        $this->expectException(MissingElementException::class);
+        $this->expectExceptionMessage('Missing <saml:Issuer> in assertion.');
         Assertion::fromXML($document->documentElement);
     }
 
