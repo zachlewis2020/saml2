@@ -175,36 +175,36 @@ class Utils
      *
      * @throws \SimpleSAML\Assert\AssertionFailedException if assertions are false
      */
-    public static function validateSignature(array $info, XMLSecurityKey $key): void
-    {
-        Assert::keyExists($info, "Signature");
+//    public static function validateSignature(array $info, XMLSecurityKey $key): void
+//    {
+//        Assert::keyExists($info, "Signature");
 
         /** @var XMLSecurityDSig $objXMLSecDSig */
-        $objXMLSecDSig = $info['Signature'];
+//        $objXMLSecDSig = $info['Signature'];
 
         /**
          * @var \DOMElement[] $sigMethod
          * @var \DOMElement $objXMLSecDSig->sigNode
          */
-        $sigMethod = self::xpQuery($objXMLSecDSig->sigNode, './ds:SignedInfo/ds:SignatureMethod');
-        if (empty($sigMethod)) {
-            throw new Exception('Missing SignatureMethod element.');
-        }
-        $sigMethod = $sigMethod[0];
-        if (!$sigMethod->hasAttribute('Algorithm')) {
-            throw new Exception('Missing Algorithm-attribute on SignatureMethod element.');
-        }
-        $algo = $sigMethod->getAttribute('Algorithm');
+//        $sigMethod = self::xpQuery($objXMLSecDSig->sigNode, './ds:SignedInfo/ds:SignatureMethod');
+//        if (empty($sigMethod)) {
+//            throw new Exception('Missing SignatureMethod element.');
+//        }
+//        $sigMethod = $sigMethod[0];
+//        if (!$sigMethod->hasAttribute('Algorithm')) {
+//            throw new Exception('Missing Algorithm-attribute on SignatureMethod element.');
+//        }
+//        $algo = $sigMethod->getAttribute('Algorithm');
 
-        if ($key->type === XMLSecurityKey::RSA_SHA256 && $algo !== $key->type) {
-            $key = self::castKey($key, $algo);
-        }
+//        if ($key->type === XMLSecurityKey::RSA_SHA256 && $algo !== $key->type) {
+//            $key = self::castKey($key, $algo);
+//        }
 
         /* Check the signature. */
-        if ($objXMLSecDSig->verify($key) !== 1) {
-            throw new Exception("Unable to validate Signature");
-        }
-    }
+//        if ($objXMLSecDSig->verify($key) !== 1) {
+//            throw new Exception("Unable to validate Signature");
+//        }
+//    }
 
 
     /**
