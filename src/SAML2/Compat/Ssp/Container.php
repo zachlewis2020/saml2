@@ -6,6 +6,9 @@ namespace SAML2\Compat\Ssp;
 
 use Psr\Log\LoggerInterface;
 use SAML2\Compat\ContainerInterface;
+use SAML2\XML\AbstractXMLElement;
+use SAML2\XML\saml\CustomIdentifierInterface;
+use SimpleSAML\Assert\Assert;
 use SimpleSAML\Utils\HTTP;
 use SimpleSAML\Utils\Random;
 use SimpleSAML\Utils\System;
@@ -17,6 +20,9 @@ class Container implements ContainerInterface
      * @var \Psr\Log\LoggerInterface
      */
     protected $logger;
+
+    /** @var array */
+    protected $registry = [];
 
 
     /**
@@ -113,5 +119,45 @@ class Container implements ContainerInterface
         }
         /** @psalm-suppress UndefinedClass */
         System::writeFile($filename, $data, $mode);
+    }
+
+
+    /**
+     * @inheritDoc
+     */
+    public function registerExtensionHandler(string $class): void
+    {
+        Assert::subclassOf($class, AbstractXMLElement::class);
+
+        if (is_subclass_of($class, CustomIdentifierInterface::class, true)) {
+            $key = $class::getXsiType() . ':BaseID';
+        } else {
+            $key = join(':', [urlencode($class::NS), AbstractXMLElement::getClassName($class)]);
+        }
+        $this->registry[$key] = $class;
+    }
+
+
+    /**
+     * @inheritDoc
+     */
+    public function getElementHandler(string $namespace, string $element): ?string
+    {
+        Assert::notEmpty($namespace, 'Cannot search for handlers without an associated namespace URI.');
+        Assert::notEmpty($element, 'Cannot search for handlers without an associated element name.');
+
+        return $this->registry[join(':', [urlencode($namespace), $element])];
+    }
+
+
+    /**
+     * @inheritDoc
+     */
+    public function getIdentifierHandler(string $type): ?string
+    {
+        Assert::notEmpty($type, 'Cannot search for identifier handlers with an empty type.');
+
+        $handler = $type . ':BaseID';
+        return array_key_exists($handler, $this->registry) ? $this->registry[$handler] : null;
     }
 }

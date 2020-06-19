@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace SAML2\XML\md;
 
 use DOMElement;
+use SAML2\Exception\InvalidDOMElementException;
+use SAML2\Exception\TooManyElementsException;
 use SAML2\Utils;
 use SAML2\XML\ds\Signature;
-use Webmozart\Assert\Assert;
+use SimpleSAML\Assert\Assert;
 
 /**
  * Class representing SAML 2 EntitiesDescriptor element.
@@ -33,8 +35,8 @@ final class EntitiesDescriptor extends AbstractMetadataDocument
     /**
      * EntitiesDescriptor constructor.
      *
-     * @param \SAML2\XML\md\EntityDescriptor[]|null $entityDescriptors
-     * @param \SAML2\XML\md\EntitiesDescriptor[]|null $entitiesDescriptors
+     * @param \SAML2\XML\md\EntityDescriptor[] $entityDescriptors
+     * @param \SAML2\XML\md\EntitiesDescriptor[] $entitiesDescriptors
      * @param string|null $name
      * @param string|null $ID
      * @param int|null $validUntil
@@ -42,8 +44,8 @@ final class EntitiesDescriptor extends AbstractMetadataDocument
      * @param \SAML2\XML\md\Extensions|null $extensions
      */
     public function __construct(
-        ?array $entityDescriptors = null,
-        ?array $entitiesDescriptors = null,
+        array $entityDescriptors = [],
+        array $entitiesDescriptors = [],
         ?string $name = null,
         ?string $ID = null,
         ?int $validUntil = null,
@@ -68,22 +70,24 @@ final class EntitiesDescriptor extends AbstractMetadataDocument
      *
      * @param \DOMElement $xml The XML element we should load.
      * @return \SAML2\XML\md\EntitiesDescriptor
-     * @throws \InvalidArgumentException if the qualified name of the supplied element is wrong
+     *
+     * @throws \SAML2\Exception\InvalidDOMElementException if the qualified name of the supplied element is wrong
+     * @throws \SAML2\Exception\TooManyElementsException if too many child-elements of a type are specified
      */
     public static function fromXML(DOMElement $xml): object
     {
-        Assert::same($xml->localName, 'EntitiesDescriptor');
-        Assert::same($xml->namespaceURI, EntitiesDescriptor::NS);
+        Assert::same($xml->localName, 'EntitiesDescriptor', InvalidDOMElementException::class);
+        Assert::same($xml->namespaceURI, EntitiesDescriptor::NS, InvalidDOMElementException::class);
 
         $validUntil = self::getAttribute($xml, 'validUntil', null);
         $orgs = Organization::getChildrenOfClass($xml);
-        Assert::maxCount($orgs, 1, 'More than one Organization found in this descriptor');
+        Assert::maxCount($orgs, 1, 'More than one Organization found in this descriptor', TooManyElementsException::class);
 
         $extensions = Extensions::getChildrenOfClass($xml);
-        Assert::maxCount($extensions, 1, 'Only one md:Extensions element is allowed.');
+        Assert::maxCount($extensions, 1, 'Only one md:Extensions element is allowed.', TooManyElementsException::class);
 
         $signature = Signature::getChildrenOfClass($xml);
-        Assert::maxCount($signature, 1, 'Only one ds:Signature element is allowed.');
+        Assert::maxCount($signature, 1, 'Only one ds:Signature element is allowed.', TooManyElementsException::class);
 
         $entities = new self(
             EntityDescriptor::getChildrenOfClass($xml),
@@ -115,13 +119,10 @@ final class EntitiesDescriptor extends AbstractMetadataDocument
     /**
      * Set the EntitiesDescriptor children objects
      *
-     * @param \SAML2\XML\md\EntitiesDescriptor[]|null $entitiesDescriptors
+     * @param \SAML2\XML\md\EntitiesDescriptor[] $entitiesDescriptors
      */
-    protected function setEntitiesDescriptors(?array $entitiesDescriptors): void
+    protected function setEntitiesDescriptors(array $entitiesDescriptors): void
     {
-        if ($entitiesDescriptors === null) {
-            return;
-        }
         Assert::allIsInstanceOf($entitiesDescriptors, EntitiesDescriptor::class);
         $this->entitiesDescriptors = $entitiesDescriptors;
     }
@@ -142,13 +143,10 @@ final class EntitiesDescriptor extends AbstractMetadataDocument
     /**
      * Set the EntityDescriptor children objects
      *
-     * @param \SAML2\XML\md\EntityDescriptor[]|null $entityDescriptors
+     * @param \SAML2\XML\md\EntityDescriptor[] $entityDescriptors
      */
-    protected function setEntityDescriptors(?array $entityDescriptors): void
+    protected function setEntityDescriptors(array $entityDescriptors): void
     {
-        if ($entityDescriptors === null) {
-            return;
-        }
         Assert::allIsInstanceOf($entityDescriptors, EntityDescriptor::class);
         $this->entityDescriptors = $entityDescriptors;
     }

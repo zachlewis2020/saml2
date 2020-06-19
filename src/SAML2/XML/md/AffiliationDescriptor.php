@@ -7,9 +7,11 @@ namespace SAML2\XML\md;
 use DOMElement;
 use Exception;
 use SAML2\Constants;
+use SAML2\Exception\InvalidDOMElementException;
+use SAML2\Exception\TooManyElementsException;
 use SAML2\Utils;
 use SAML2\XML\ds\Signature;
-use Webmozart\Assert\Assert;
+use SimpleSAML\Assert\Assert;
 
 /**
  * Class representing SAML 2 AffiliationDescriptor element.
@@ -76,29 +78,29 @@ final class AffiliationDescriptor extends AbstractMetadataDocument
      *
      * @param \DOMElement $xml The XML element we should load.
      * @return \SAML2\XML\md\AffiliationDescriptor
-     * @throws \InvalidArgumentException if the qualified name of the supplied element is wrong
+     *
+     * @throws \SAML2\Exception\InvalidDOMElementException if the qualified name of the supplied element is wrong
+     * @throws \SAML2\Exception\MissingAttributeException if the supplied element is missing one of the mandatory attributes
+     * @throws \SAML2\Exception\TooManyElementsException if too many child-elements of a type are specified
      */
     public static function fromXML(DOMElement $xml): object
     {
-        Assert::same($xml->localName, 'AffiliationDescriptor');
-        Assert::same($xml->namespaceURI, AffiliationDescriptor::NS);
+        Assert::same($xml->localName, 'AffiliationDescriptor', InvalidDOMElementException::class);
+        Assert::same($xml->namespaceURI, AffiliationDescriptor::NS, InvalidDOMElementException::class);
 
-        if (!$xml->hasAttribute('affiliationOwnerID')) {
-            throw new Exception('Missing affiliationOwnerID on AffiliationDescriptor.');
-        }
-        $owner = $xml->getAttribute('affiliationOwnerID');
+        $owner = self::getAttribute($xml, 'affiliationOwnerID');
         $members = Utils::extractStrings($xml, Constants::NS_MD, 'AffiliateMember');
         $keyDescriptors = KeyDescriptor::getChildrenOfClass($xml);
 
         $validUntil = self::getAttribute($xml, 'validUntil', null);
         $orgs = Organization::getChildrenOfClass($xml);
-        Assert::maxCount($orgs, 1, 'More than one Organization found in this descriptor');
+        Assert::maxCount($orgs, 1, 'More than one Organization found in this descriptor', TooManyElementsException::class);
 
         $extensions = Extensions::getChildrenOfClass($xml);
-        Assert::maxCount($extensions, 1, 'Only one md:Extensions element is allowed.');
+        Assert::maxCount($extensions, 1, 'Only one md:Extensions element is allowed.', TooManyElementsException::class);
 
         $signature = Signature::getChildrenOfClass($xml);
-        Assert::maxCount($signature, 1, 'Only one ds:Signature element is allowed.');
+        Assert::maxCount($signature, 1, 'Only one ds:Signature element is allowed.', TooManyElementsException::class);
 
         $afd = new self(
             $owner,
@@ -131,7 +133,7 @@ final class AffiliationDescriptor extends AbstractMetadataDocument
      * Set the value of the affiliationOwnerId-property
      *
      * @param string $affiliationOwnerId
-     * @throws \InvalidArgumentException
+     * @throws \SimpleSAML\Assert\AssertionFailedException
      */
     protected function setAffiliationOwnerID(string $affiliationOwnerId): void
     {
@@ -156,7 +158,7 @@ final class AffiliationDescriptor extends AbstractMetadataDocument
      *
      * @param string[] $affiliateMembers
      * @return void
-     * @throws \InvalidArgumentException
+     * @throws \SimpleSAML\Assert\AssertionFailedException
      */
     protected function setAffiliateMembers(array $affiliateMembers): void
     {

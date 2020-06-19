@@ -6,10 +6,13 @@ namespace SAML2\XML\md;
 
 use DOMElement;
 use SAML2\Constants;
+use SAML2\Exception\InvalidDOMElementException;
+use SAML2\Exception\MissingElementException;
+use SAML2\Exception\TooManyElementsException;
 use SAML2\Utils;
 use SAML2\XML\ds\Signature;
 use SAML2\XML\saml\Attribute;
-use Webmozart\Assert\Assert;
+use SimpleSAML\Assert\Assert;
 
 /**
  * Class representing SAML 2 metadata AttributeAuthorityDescriptor.
@@ -85,10 +88,10 @@ final class AttributeAuthorityDescriptor extends AbstractRoleDescriptor
     public function __construct(
         array $attributeServices,
         array $protocolSupportEnumeration,
-        ?array $assertionIDRequestService = null,
-        ?array $nameIDFormats = null,
-        ?array $attributeProfiles = null,
-        ?array $attributes = null,
+        ?array $assertionIDRequestService = [],
+        ?array $nameIDFormats = [],
+        ?array $attributeProfiles = [],
+        ?array $attributes = [],
         ?string $ID = null,
         ?int $validUntil = null,
         ?string $cacheDuration = null,
@@ -263,48 +266,41 @@ final class AttributeAuthorityDescriptor extends AbstractRoleDescriptor
      *
      * @param \DOMElement $xml The XML element we should load.
      * @return self
-     * @throws \InvalidArgumentException if the qualified name of the supplied element is wrong
+     *
+     * @throws \SAML2\Exception\InvalidDOMElementException if the qualified name of the supplied element is wrong
+     * @throws \SAML2\Exception\MissingAttributeException if the supplied element is missing one of the mandatory attributes
+     * @throws \SAML2\Exception\MissingElementException if one of the mandatory child-elements is missing
+     * @throws \SAML2\Exception\TooManyElementsException if too many child-elements of a type are specified
      */
     public static function fromXML(DOMElement $xml): object
     {
-        Assert::same($xml->localName, 'AttributeAuthorityDescriptor');
-        Assert::same($xml->namespaceURI, AttributeAuthorityDescriptor::NS);
+        Assert::same($xml->localName, 'AttributeAuthorityDescriptor', InvalidDOMElementException::class);
+        Assert::same($xml->namespaceURI, AttributeAuthorityDescriptor::NS, InvalidDOMElementException::class);
 
-        /** @var string $protocols */
         $protocols = self::getAttribute($xml, 'protocolSupportEnumeration');
 
-        $attrServices = [];
-        /** @var DOMElement $ep */
-        foreach (Utils::xpQuery($xml, './saml_metadata:AttributeService') as $ep) {
-            $attrServices[] = AttributeService::fromXML($ep);
-        }
-        Assert::notEmpty($attrServices, 'Must have at least one AttributeService in AttributeAuthorityDescriptor.');
+        $attrServices = AttributeService::getChildrenOfClass($xml);
+        Assert::notEmpty(
+            $attrServices,
+            'Must have at least one AttributeService in AttributeAuthorityDescriptor.',
+            MissingElementException::class
+        );
 
-        $assertIDReqServices = [];
-        /** @var DOMElement $ep */
-        foreach (Utils::xpQuery($xml, './saml_metadata:AssertionIDRequestService') as $ep) {
-            $assertIDReqServices[] = AssertionIDRequestService::fromXML($ep);
-        }
-
+        $assertIDReqServices = AssertionIDRequestService::getChildrenOfClass($xml);
         $nameIDFormats = Utils::extractStrings($xml, Constants::NS_MD, 'NameIDFormat');
         $attrProfiles = Utils::extractStrings($xml, Constants::NS_MD, 'AttributeProfile');
 
-        $attributes = [];
-        /** @var DOMElement $a */
-        foreach (Utils::xpQuery($xml, './saml_assertion:Attribute') as $a) {
-            $attributes[] = Attribute::fromXML($a);
-        }
-
+        $attributes = Attribute::getChildrenOfClass($xml);
         $validUntil = self::getAttribute($xml, 'validUntil', null);
 
         $orgs = Organization::getChildrenOfClass($xml);
-        Assert::maxCount($orgs, 1, 'More than one Organization found in this descriptor');
+        Assert::maxCount($orgs, 1, 'More than one Organization found in this descriptor', TooManyElementsException::class);
 
         $extensions = Extensions::getChildrenOfClass($xml);
-        Assert::maxCount($extensions, 1, 'Only one md:Extensions element is allowed.');
+        Assert::maxCount($extensions, 1, 'Only one md:Extensions element is allowed.', TooManyElementsException::class);
 
         $signature = Signature::getChildrenOfClass($xml);
-        Assert::maxCount($signature, 1, 'Only one ds:Signature element is allowed.');
+        Assert::maxCount($signature, 1, 'Only one ds:Signature element is allowed.', TooManyElementsException::class);
 
         $authority = new self(
             $attrServices,

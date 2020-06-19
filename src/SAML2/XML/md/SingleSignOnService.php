@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SAML2\XML\md;
 
-use Webmozart\Assert\Assert;
+use SimpleSAML\Assert\Assert;
 
 /**
  * Class representing an md:SingleSignOnService element.
@@ -22,7 +22,7 @@ final class SingleSignOnService extends AbstractEndpointType
      * @param string $location
      * @param string|null $unused
      * @param array $attributes
-     * @throws \InvalidArgumentException
+     * @throws \SimpleSAML\Assert\AssertionFailedException
      */
     public function __construct(
         string $binding,

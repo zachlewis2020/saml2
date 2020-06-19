@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace SAML2\Exception;
 
-class InvalidArgumentException extends \InvalidArgumentException implements Throwable
+use InvalidArgumentException as BUILTIN_InvalidArgumentException;
+use Throwable;
+
+class InvalidArgumentException extends BUILTIN_InvalidArgumentException implements Throwable
 {
     /**
      * @param string $expected description of expected type

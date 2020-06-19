@@ -6,9 +6,11 @@ namespace SAML2\XML\md;
 
 use DOMElement;
 use SAML2\Constants;
+use SAML2\Exception\InvalidDOMElementException;
+use SAML2\Exception\TooManyElementsException;
 use SAML2\Utils;
 use SAML2\XML\ds\Signature;
-use Webmozart\Assert\Assert;
+use SimpleSAML\Assert\Assert;
 
 /**
  * Class representing SAML 2 metadata AuthnAuthorityDescriptor.
@@ -46,8 +48,8 @@ final class AuthnAuthorityDescriptor extends AbstractRoleDescriptor
      *
      * @param array $authnQueryServices
      * @param array $protocolSupportEnumeration
-     * @param array|null $assertionIDRequestServices
-     * @param array|null $nameIDFormats
+     * @param array $assertionIDRequestServices
+     * @param array $nameIDFormats
      * @param string|null $ID
      * @param int|null $validUntil
      * @param string|null $cacheDuration
@@ -60,9 +62,9 @@ final class AuthnAuthorityDescriptor extends AbstractRoleDescriptor
     public function __construct(
         array $authnQueryServices,
         array $protocolSupportEnumeration,
-        ?array $assertionIDRequestServices = null,
-        ?array $nameIDFormats = null,
-        ?string $ID = null,
+        array $assertionIDRequestServices = [],
+        array $nameIDFormats = [],
+        string $ID = null,
         ?int $validUntil = null,
         ?string $cacheDuration = null,
         ?Extensions $extensions = null,
@@ -93,40 +95,33 @@ final class AuthnAuthorityDescriptor extends AbstractRoleDescriptor
      *
      * @param \DOMElement $xml The XML element we should load.
      * @return self
-     * @throws \InvalidArgumentException if the qualified name of the supplied element is wrong
+     *
+     * @throws \SAML2\Exception\InvalidDOMElementException if the qualified name of the supplied element is wrong
+     * @throws \SAML2\Exception\MissingAttributeException if the supplied element is missing one of the mandatory attributes
+     * @throws \SAML2\Exception\TooManyElementsException if too many child-elements of a type are specified
      */
     public static function fromXML(DOMElement $xml): object
     {
-        Assert::same($xml->localName, 'AuthnAuthorityDescriptor');
-        Assert::same($xml->namespaceURI, AuthnAuthorityDescriptor::NS);
+        Assert::same($xml->localName, 'AuthnAuthorityDescriptor', InvalidDOMElementException::class);
+        Assert::same($xml->namespaceURI, AuthnAuthorityDescriptor::NS, InvalidDOMElementException::class);
 
-        /** @var string $protocols */
         $protocols = self::getAttribute($xml, 'protocolSupportEnumeration');
 
-        $authnQueryServices = [];
-        /** @var DOMElement $ep */
-        foreach (Utils::xpQuery($xml, './saml_metadata:AuthnQueryService') as $ep) {
-            $authnQueryServices[] = AuthnQueryService::fromXML($ep);
-        }
-
-        $assertionIDRequestServices = [];
-        /** @var DOMElement $ep */
-        foreach (Utils::xpQuery($xml, './saml_metadata:AssertionIDRequestService') as $ep) {
-            $assertionIDRequestServices[] = AssertionIDRequestService::fromXML($ep);
-        }
+        $authnQueryServices = AuthnQueryService::getChildrenOfClass($xml);
+        $assertionIDRequestServices = AssertionIDRequestService::getChildrenOfClass($xml);
 
         $nameIDFormats = Utils::extractStrings($xml, Constants::NS_MD, 'NameIDFormat');
 
         $validUntil = self::getAttribute($xml, 'validUntil', null);
 
         $orgs = Organization::getChildrenOfClass($xml);
-        Assert::maxCount($orgs, 1, 'More than one Organization found in this descriptor');
+        Assert::maxCount($orgs, 1, 'More than one Organization found in this descriptor', TooManyElementsException::class);
 
         $extensions = Extensions::getChildrenOfClass($xml);
-        Assert::maxCount($extensions, 1, 'Only one md:Extensions element is allowed.');
+        Assert::maxCount($extensions, 1, 'Only one md:Extensions element is allowed.', TooManyElementsException::class);
 
         $signature = Signature::getChildrenOfClass($xml);
-        Assert::maxCount($signature, 1, 'Only one ds:Signature element is allowed.');
+        Assert::maxCount($signature, 1, 'Only one ds:Signature element is allowed.', TooManyElementsException::class);
 
         $authority = new self(
             $authnQueryServices,
@@ -165,7 +160,7 @@ final class AuthnAuthorityDescriptor extends AbstractRoleDescriptor
      *
      * @param \SAML2\XML\md\AbstractEndpointType[] $authnQueryServices
      * @return void
-     * @throws \InvalidArgumentException
+     * @throws \SimpleSAML\Assert\AssertionFailedException
      */
     protected function setAuthnQueryServices(array $authnQueryServices): void
     {
@@ -195,13 +190,10 @@ final class AuthnAuthorityDescriptor extends AbstractRoleDescriptor
      *
      * @param \SAML2\XML\md\AbstractEndpointType[] $assertionIDRequestServices
      * @return void
-     * @throws \InvalidArgumentException
+     * @throws \SimpleSAML\Assert\AssertionFailedException
      */
-    protected function setAssertionIDRequestService(?array $assertionIDRequestServices): void
+    protected function setAssertionIDRequestService(?array $assertionIDRequestServices = []): void
     {
-        if ($assertionIDRequestServices === null) {
-            return;
-        }
         Assert::allIsInstanceOf(
             $assertionIDRequestServices,
             AbstractEndpointType::class,
@@ -227,7 +219,7 @@ final class AuthnAuthorityDescriptor extends AbstractRoleDescriptor
      *
      * @param string[] $nameIDFormats
      * @return void
-     * @throws \InvalidArgumentException
+     * @throws \SimpleSAML\Assert\AssertionFailedException
      */
     protected function setNameIDFormat(?array $nameIDFormats): void
     {
@@ -246,7 +238,6 @@ final class AuthnAuthorityDescriptor extends AbstractRoleDescriptor
      *
      * @return \DOMElement
      * @throws \Exception
-     * @throws \InvalidArgumentException if the qualified name of the supplied element is wrong
      */
     public function toXML(?DOMElement $parent = null): DOMElement
     {

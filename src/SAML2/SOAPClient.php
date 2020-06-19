@@ -5,12 +5,16 @@ declare(strict_types=1);
 namespace SAML2;
 
 use DOMDocument;
+use Exception;
 use RobRichards\XMLSecLibs\XMLSecurityKey;
 use SAML2\Compat\ContainerSingleton;
 use SAML2\Exception\RuntimeException;
+use SAML2\XML\samlp\AbstractMessage;
+use SAML2\XML\samlp\MessageFactory;
 use SimpleSAML\Configuration;
 use SimpleSAML\Utils\Config;
 use SimpleSAML\Utils\Crypto;
+use SoapClient as BUILTIN_SoapClient;
 
 /**
  * Implementation of the SAML 2.0 SOAP binding.
@@ -29,15 +33,15 @@ class SOAPClient
     /**
      * This function sends the SOAP message to the service location and returns SOAP response
      *
-     * @param \SAML2\Message $msg The request that should be sent.
+     * @param \SAML2\XML\samlp\AbstractMessage $msg The request that should be sent.
      * @param \SimpleSAML\Configuration $srcMetadata The metadata of the issuer of the message.
      * @param \SimpleSAML\Configuration $dstMetadata The metadata of the destination of the message.
      * @throws \Exception
-     * @return \SAML2\Message The response we received.
+     * @return \SAML2\XML\samlp\AbstractMessage The response we received.
      *
      * @psalm-suppress UndefinedClass
      */
-    public function send(Message $msg, Configuration $srcMetadata, Configuration $dstMetadata = null): Message
+    public function send(AbstractMessage $msg, Configuration $srcMetadata, Configuration $dstMetadata = null): AbstractMessage
     {
         $issuer = $msg->getIssuer();
 
@@ -107,7 +111,7 @@ class SOAPClient
         $context = stream_context_create($ctxOpts);
 
         $options = [
-            'uri' => $issuer,
+            'uri' => $issuer->getValue(),
             'location' => $msg->getDestination(),
             'stream_context' => $context,
         ];
@@ -120,10 +124,10 @@ class SOAPClient
             $options['proxy_port'] = $srcMetadata->getValue('saml.SOAPClient.proxyport');
         }
 
-        $x = new \SoapClient(null, $options);
+        $x = new BUILTINT_SoapClient(null, $options);
 
         // Add soap-envelopes
-        $request = $msg->toSignedXML();
+        $request = $msg->toXML();
         $request = self::START_SOAP_ENVELOPE . $request->ownerDocument->saveXML($request) . self::END_SOAP_ENVELOPE;
 
         $container->debugMessage($request, 'out');
@@ -132,33 +136,33 @@ class SOAPClient
         $version = SOAP_1_1;
         $destination = $msg->getDestination();
         if ($destination === null) {
-            throw new \Exception('Cannot send SOAP message, no destination set.');
+            throw new Exception('Cannot send SOAP message, no destination set.');
         }
 
         /* Perform SOAP Request over HTTP */
         $soapresponsexml = $x->__doRequest($request, $destination, $action, $version);
         if (empty($soapresponsexml)) {
-            throw new \Exception('Empty SOAP response, check peer certificate.');
+            throw new Exception('Empty SOAP response, check peer certificate.');
         }
 
         Utils::getContainer()->debugMessage($soapresponsexml, 'in');
 
-        // Convert to SAML2\Message (\DOMElement)
+        // Convert to SAML2\XML\samlp\AbstractMessage (\DOMElement)
         try {
             $dom = DOMDocumentFactory::fromString($soapresponsexml);
         } catch (RuntimeException $e) {
-            throw new \Exception('Not a SOAP response.', 0, $e);
+            throw new Exception('Not a SOAP response.', 0, $e);
         }
         $container->debugMessage($dom->documentElement, 'in');
 
         $soapfault = $this->getSOAPFault($dom);
         if (isset($soapfault)) {
-            throw new \Exception($soapfault);
+            throw new Exception($soapfault);
         }
         //Extract the message from the response
         /** @var \DOMElement[] $samlresponse */
         $samlresponse = Utils::xpQuery($dom->firstChild, '/soap-env:Envelope/soap-env:Body/*[1]');
-        $samlresponse = Message::fromXML($samlresponse[0]);
+        $samlresponse = MessageFactory::fromXML($samlresponse[0]);
 
         /* Add validator to message which uses the SSL context. */
         self::addSSLValidator($samlresponse, $context);
@@ -172,11 +176,11 @@ class SOAPClient
     /**
      * Add a signature validator based on a SSL context.
      *
-     * @param \SAML2\Message $msg The message we should add a validator to.
+     * @param \SAML2\XML\samlp\AbstractMessage $msg The message we should add a validator to.
      * @param resource $context The stream context.
      * @return void
      */
-    private static function addSSLValidator(Message $msg, $context): void
+    private static function addSSLValidator(AbstractMessage $msg, $context): void
     {
         $options = stream_context_get_options($context);
         if (!isset($options['ssl']['peer_certificate'])) {
@@ -222,11 +226,11 @@ class SOAPClient
         /** @psalm-suppress PossiblyNullArgument */
         $keyInfo = openssl_pkey_get_details($key->key);
         if ($keyInfo === false) {
-            throw new \Exception('Unable to get key details from XMLSecurityKey.');
+            throw new Exception('Unable to get key details from XMLSecurityKey.');
         }
 
         if (!isset($keyInfo['key'])) {
-            throw new \Exception('Missing key in public key details.');
+            throw new Exception('Missing key in public key details.');
         }
 
         if ($keyInfo['key'] !== $data) {

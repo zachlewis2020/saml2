@@ -5,8 +5,9 @@ declare(strict_types=1);
 namespace SAML2\XML\shibmd;
 
 use DOMElement;
+use SAML2\Exception\InvalidDOMElementException;
 use SAML2\Utils;
-use Webmozart\Assert\Assert;
+use SimpleSAML\Assert\Assert;
 
 /**
  * Class which represents the Scope element found in Shibboleth metadata.
@@ -95,15 +96,17 @@ final class Scope extends AbstractShibmdElement
      *
      * @param \DOMElement $xml The XML element we should load
      * @return self
-     * @throws \InvalidArgumentException if the qualified name of the supplied element is wrong
+     *
+     * @throws \SAML2\Exception\InvalidDOMElementException if the qualified name of the supplied element is wrong
      */
     public static function fromXML(DOMElement $xml): object
     {
-        Assert::same($xml->localName, 'Scope');
-        Assert::same($xml->namespaceURI, Scope::NS);
+        Assert::same($xml->localName, 'Scope', InvalidDOMElementException::class);
+        Assert::same($xml->namespaceURI, Scope::NS, InvalidDOMElementException::class);
 
         $scope = $xml->textContent;
-        $regexp = Utils::parseBoolean($xml, 'regexp', false);
+        /** @psalm-var bool $regexp */
+        $regexp = self::getBooleanAttribute($xml, 'regexp', 'false');
 
         return new self($scope, $regexp);
     }
@@ -117,6 +120,7 @@ final class Scope extends AbstractShibmdElement
      */
     public function toXML(DOMElement $parent = null): DOMElement
     {
+        /** @psalm-var \DOMDocument $e->ownerDocument */
         $e = $this->instantiateParentElement($parent);
         $e->appendChild($e->ownerDocument->createTextNode($this->scope));
 

@@ -6,7 +6,9 @@ namespace SAML2\XML\alg;
 
 use DOMElement;
 use SAML2\DOMDocumentFactory;
-use Webmozart\Assert\Assert;
+use SAML2\Exception\InvalidDOMElementException;
+use SAML2\Exception\MissingAttributeException;
+use SimpleSAML\Assert\Assert;
 
 /**
  * Class for handling the alg:SigningMethod element.
@@ -131,21 +133,18 @@ final class SigningMethod extends AbstractAlgElement
      *
      * @param \DOMElement $xml The XML element we should load
      * @return self
-     * @throws \InvalidArgumentException if the qualified name of the supplied element is wrong
-     * @throws \InvalidArgumentException if the supplied argument is missing the Algorithm attribute
+     *
+     * @throws \SAML2\Exception\InvalidDOMElementException if the qualified name of the supplied element is wrong
+     * @throws \SAML2\Exception\MissingAttributeException if the supplied argument is missing the Algorithm attribute
      */
     public static function fromXML(DOMElement $xml): object
     {
-        Assert::same($xml->localName, 'SigningMethod');
-        Assert::same($xml->namespaceURI, SigningMethod::NS);
-        Assert::true(
-            $xml->hasAttribute('Algorithm'),
-            'Missing required attribute "Algorithm" in alg:SigningMethod element.'
-        );
+        Assert::same($xml->localName, 'SigningMethod', InvalidDOMElementException::class);
+        Assert::same($xml->namespaceURI, SigningMethod::NS, InvalidDOMElementException::class);
 
-        $Algorithm = $xml->getAttribute('Algorithm');
-        $MinKeySize = $xml->hasAttribute('MinKeySize') ? intval($xml->getAttribute('MinKeySize')) : null;
-        $MaxKeySize = $xml->hasAttribute('MaxKeySize') ? intval($xml->getAttribute('MaxKeySize')) : null;
+        $Algorithm = self::getAttribute($xml, 'Algorithm');
+        $MinKeySize = self::getIntegerAttribute($xml, 'MinKeySize', null);
+        $MaxKeySize = self::getIntegerAttribute($xml, 'MaxKeySize', null);
 
         return new self($Algorithm, $MinKeySize, $MaxKeySize);
     }

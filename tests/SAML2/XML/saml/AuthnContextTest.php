@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace SAML2\XML\saml;
 
-use InvalidArgumentException;
 use SAML2\Constants;
 use SAML2\DOMDocumentFactory;
 use SAML2\Utils;
+use SimpleSAML\Assert\AssertionFailedException;
 
 /**
  * Class \SAML2\XML\saml\AuthnContextTest
@@ -68,7 +68,7 @@ XML
         );
 
         $this->authority = DOMDocumentFactory::fromString(<<<XML
-<saml:AuthenticatingAuthority xmlns:saml="{$samlNamespace}">https://sp.example.com/SAML2</saml:AuthenticatingAuthority>
+<saml:AuthenticatingAuthority xmlns:saml="{$samlNamespace}">https://idp.example.com/SAML2</saml:AuthenticatingAuthority>
 XML
         );
     }
@@ -86,13 +86,13 @@ XML
             new AuthnContextClassRef(Constants::AC_PASSWORD_PROTECTED_TRANSPORT),
             null,
             new AuthnContextDeclRef('/relative/path/to/document.xml'),
-            [new AuthenticatingAuthority('https://sp.example.com/SAML2')]
+            ['https://idp.example.com/SAML2']
         );
 
         $this->assertEquals(new AuthnContextClassRef(Constants::AC_PASSWORD_PROTECTED_TRANSPORT), $authnContext->getAuthnContextClassRef());
         $this->assertNull($authnContext->getAuthnContextDecl());
         $this->assertEquals(new AuthnContextDeclRef('/relative/path/to/document.xml'), $authnContext->getAuthnContextDeclRef());
-        $this->assertEquals([new AuthenticatingAuthority('https://sp.example.com/SAML2')], $authnContext->getAuthenticatingAuthorities());
+        $this->assertEquals(['https://idp.example.com/SAML2'], $authnContext->getAuthenticatingAuthorities());
 
         $document = $this->document;
         $document->documentElement->appendChild($document->importNode($this->classRef->documentElement, true));
@@ -109,7 +109,7 @@ XML
     public function testMarshallingWithoutClassRef(): void
     {
         $authnContextDecl = AuthnContextDecl::fromXML($this->decl->documentElement);
-        $authenticatingAuthority = new AuthenticatingAuthority('https://sp.example.com/SAML2');
+        $authenticatingAuthority = 'https://idp.example.com/SAML2';
 
         $authnContext = new AuthnContext(
             null,
@@ -121,7 +121,7 @@ XML
         $this->assertNull($authnContext->getAuthnContextClassRef());
         $this->assertEquals($authnContextDecl, $authnContext->getAuthnContextDecl());
         $this->assertNull($authnContext->getAuthnContextDeclRef());
-        $this->assertEquals([new AuthenticatingAuthority('https://sp.example.com/SAML2')], $authnContext->getAuthenticatingAuthorities());
+        $this->assertEquals(['https://idp.example.com/SAML2'], $authnContext->getAuthenticatingAuthorities());
 
         $document = $this->document;
         $document->documentElement->appendChild($document->importNode($this->decl->documentElement, true));
@@ -140,7 +140,7 @@ XML
         $authnContextDecl = AuthnContextDecl::fromXML($this->decl->documentElement);
         $authnContextDeclRef = new AuthnContextDeclRef('/relative/path/to/document.xml');
 
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(AssertionFailedException::class);
         $this->expectExceptionMessage('Can only have one of AuthnContextDecl/AuthnContextDeclRef');
 
         $authnContext = new AuthnContext(
@@ -148,7 +148,7 @@ XML
             $authnContextDecl,
             $authnContextDeclRef,
             [
-                new AuthenticatingAuthority('https://sp.example.com/SAML2')
+                'https://idp.example.com/SAML2'
             ]
         );
     }
@@ -159,7 +159,7 @@ XML
      */
     public function testMarshallingEmpty(): void
     {
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(AssertionFailedException::class);
         $this->expectExceptionMessage('You need either an AuthnContextDecl or an AuthnContextDeclRef');
 
         new AuthnContext(null, null, null);
@@ -190,7 +190,7 @@ XML
         $this->assertEquals('/relative/path/to/document.xml', $declRef->getDeclRef());
 
         $authorities = $authnContext->getAuthenticatingAuthorities();
-        $this->assertEquals('https://sp.example.com/SAML2', $authorities[0]->getAuthority());
+        $this->assertEquals('https://idp.example.com/SAML2', $authorities[0]);
     }
 
 
@@ -226,7 +226,7 @@ XML
         $document->documentElement->appendChild($document->importNode($this->declRef->documentElement, true));
         $document->documentElement->appendChild($document->importNode($this->authority->documentElement, true));
 
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(AssertionFailedException::class);
         $this->expectExceptionMessage('Can only have one of AuthnContextDecl/AuthnContextDeclRef');
 
         $authnContext = AuthnContext::fromXML($document->documentElement);
@@ -240,7 +240,7 @@ XML
     {
         $document = $this->document;
 
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(AssertionFailedException::class);
         $this->expectExceptionMessage('You need either an AuthnContextDecl or an AuthnContextDeclRef');
 
         AuthnContext::fromXML($document->documentElement);

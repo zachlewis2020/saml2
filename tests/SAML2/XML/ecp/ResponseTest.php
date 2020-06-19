@@ -9,7 +9,9 @@ use DOMElement;
 use InvalidArgumentException;
 use SAML2\Constants;
 use SAML2\DOMDocumentFactory;
+use SAML2\Exception\MissingAttributeException;
 use SAML2\XML\ecp\Response;
+use SimpleSAML\Assert\AssertionFailedException;
 
 final class ResponseTest extends \PHPUnit\Framework\TestCase
 {
@@ -93,7 +95,7 @@ XML
         $document = $this->document->documentElement;
         $document->removeAttributeNS(Constants::NS_SOAP, 'mustUnderstand');
 
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(AssertionFailedException::class);
         $this->expectExceptionMessage('Missing SOAP-ENV:mustUnderstand attribute in <ecp:Response>.');
 
         Response::fromXML($document);
@@ -106,7 +108,7 @@ XML
         $document = $this->document->documentElement;
         $document->removeAttributeNS(Constants::NS_SOAP, 'actor');
 
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(AssertionFailedException::class);
         $this->expectExceptionMessage('Missing SOAP-ENV:actor attribute in <ecp:Response>.');
 
         Response::fromXML($document);
@@ -121,7 +123,7 @@ XML
         $document = $this->document->documentElement;
         $document->removeAttribute('AssertionConsumerServiceURL');
 
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(MissingAttributeException::class);
         $this->expectExceptionMessage('Missing AssertionConsumerServiceURL attribute in <ecp:Response>.');
 
         Response::fromXML($document);

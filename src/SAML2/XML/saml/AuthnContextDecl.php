@@ -8,8 +8,9 @@ use DOMElement;
 use DOMNodeList;
 use SAML2\Constants;
 use SAML2\DOMDocumentFactory;
+use SAML2\Exception\InvalidDOMElementException;
 use SAML2\Utils;
-use Webmozart\Assert\Assert;
+use SimpleSAML\Assert\Assert;
 
 /**
  * Class representing SAML2 AuthnContextDecl
@@ -62,12 +63,13 @@ final class AuthnContextDecl extends AbstractSamlElement
      *
      * @param \DOMElement $xml The XML element we should load
      * @return \SAML2\XML\saml\AuthnContextDecl
-     * @throws \InvalidArgumentException if the qualified name of the supplied element is wrong
+     *
+     * @throws \SAML2\Exception\InvalidDOMElementException if the qualified name of the supplied element is wrong
      */
     public static function fromXML(DOMElement $xml): object
     {
-        Assert::same($xml->localName, 'AuthnContextDecl');
-        Assert::same($xml->namespaceURI, AuthnContextDecl::NS);
+        Assert::same($xml->localName, 'AuthnContextDecl', InvalidDOMElementException::class);
+        Assert::same($xml->namespaceURI, AuthnContextDecl::NS, InvalidDOMElementException::class);
 
         return new self($xml->childNodes);
     }
@@ -81,6 +83,7 @@ final class AuthnContextDecl extends AbstractSamlElement
      */
     public function toXML(DOMElement $parent = null): DOMElement
     {
+        /** @psalm-var \DOMDocument $e->ownerDocument */
         $e = $this->instantiateParentElement($parent);
 
         foreach ($this->decl as $node) {

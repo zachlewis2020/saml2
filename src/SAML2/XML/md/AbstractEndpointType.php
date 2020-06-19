@@ -5,8 +5,9 @@ declare(strict_types=1);
 namespace SAML2\XML\md;
 
 use DOMElement;
+use SAML2\Exception\InvalidDOMElementException;
 use SAML2\XML\ExtendableAttributesTrait;
-use Webmozart\Assert\Assert;
+use SimpleSAML\Assert\Assert;
 
 /**
  * Class representing SAML 2 EndpointType.
@@ -79,7 +80,9 @@ abstract class AbstractEndpointType extends AbstractMdElement
      *
      * @param \DOMElement $xml The XML element we should load.
      * @return static
-     * @throws \InvalidArgumentException if the qualified name of the supplied element is wrong
+     *
+     * @throws \SAML2\Exception\InvalidDOMElementException if the qualified name of the supplied element is wrong
+     * @throws \SAML2\Exception\MissingAttributeException if the supplied element is missing any of the mandatory attributes
      */
     public static function fromXML(DOMElement $xml): object
     {
@@ -87,7 +90,8 @@ abstract class AbstractEndpointType extends AbstractMdElement
         Assert::eq(
             $xml->localName,
             $qualifiedName,
-            'Unexpected name for endpoint: ' . $xml->localName . '. Expected: ' . $qualifiedName . '.'
+            'Unexpected name for endpoint: ' . $xml->localName . '. Expected: ' . $qualifiedName . '.',
+            InvalidDOMElementException::class
         );
 
         /** @var string $binding */
@@ -120,7 +124,7 @@ abstract class AbstractEndpointType extends AbstractMdElement
      * Set the value of the Binding property.
      *
      * @param string $binding
-     * @throws \InvalidArgumentException if the Binding is empty
+     * @throws \SimpleSAML\Assert\AssertionFailedException if the Binding is empty
      */
     protected function setBinding(string $binding): void
     {
@@ -144,7 +148,7 @@ abstract class AbstractEndpointType extends AbstractMdElement
      * Set the value of the Location property.
      *
      * @param string $location
-     * @throws \InvalidArgumentException if the Location is empty
+     * @throws \SimpleSAML\Assert\AssertionFailedException if the Location is empty
      */
     protected function setLocation(string $location): void
     {
@@ -168,7 +172,7 @@ abstract class AbstractEndpointType extends AbstractMdElement
      * Set the value of the ResponseLocation property.
      *
      * @param string|null $responseLocation
-     * @throws \InvalidArgumentException if the ResponseLocation is empty
+     * @throws \SimpleSAML\Assert\AssertionFailedException if the ResponseLocation is empty
      */
     protected function setResponseLocation(?string $responseLocation = null): void
     {

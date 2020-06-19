@@ -7,10 +7,12 @@ namespace SAML2\XML\saml;
 use DOMElement;
 use RobRichards\XMLSecLibs\XMLSecurityDSig;
 use SAML2\Constants;
+use SAML2\Exception\InvalidDOMElementException;
 use SAML2\Utils;
 use SAML2\XML\Chunk;
 use SAML2\XML\ds\KeyInfo;
-use Webmozart\Assert\Assert;
+use SAML2\XML\ExtendableAttributesTrait;
+use SimpleSAML\Assert\Assert;
 
 /**
  * Class representing SAML 2 SubjectConfirmationData element.
@@ -19,6 +21,8 @@ use Webmozart\Assert\Assert;
  */
 final class SubjectConfirmationData extends AbstractSamlElement
 {
+    use ExtendableAttributesTrait;
+
     /**
      * The time before this element is valid, as an unix timestamp.
      *
@@ -74,6 +78,7 @@ final class SubjectConfirmationData extends AbstractSamlElement
      * @param string|null $inResponseTo
      * @param string|null $address
      * @param (\SAML2\XML\ds\KeyInfo|\SAML2\XML\Chunk)[] $info
+     * @param \DOMAttr[] $namespacedAttributes
      */
     public function __construct(
         ?int $notBefore = null,
@@ -81,7 +86,8 @@ final class SubjectConfirmationData extends AbstractSamlElement
         ?string $recipient = null,
         ?string $inResponseTo = null,
         ?string $address = null,
-        array $info = []
+        array $info = [],
+        array $namespacedAttributes = []
     ) {
         $this->setNotBefore($notBefore);
         $this->setNotOnOrAfter($notOnOrAfter);
@@ -89,6 +95,7 @@ final class SubjectConfirmationData extends AbstractSamlElement
         $this->setInResponseTo($inResponseTo);
         $this->setAddress($address);
         $this->setInfo($info);
+        $this->setAttributesNS($namespacedAttributes);
     }
 
 
@@ -232,21 +239,8 @@ final class SubjectConfirmationData extends AbstractSamlElement
     private function setInfo(array $info): void
     {
         Assert::allIsInstanceOfAny($info, [Chunk::class, KeyInfo::class]);
+
         $this->info = $info;
-    }
-
-
-    /**
-     * Add the value to the info-property
-     *
-     * @param \SAML2\XML\Chunk|\SAML2\XML\ds\KeyInfo $info
-     * @return void
-     * @throws \InvalidArgumentException
-     */
-    public function addInfo(object $info): void
-    {
-        Assert::isInstanceOfAny($info, [Chunk::class, KeyInfo::class]);
-        $this->info[] = $info;
     }
 
 
@@ -264,6 +258,7 @@ final class SubjectConfirmationData extends AbstractSamlElement
             && empty($this->InResponseTo)
             && empty($this->Address)
             && empty($this->info)
+            && empty($this->namespacedAttributes)
         );
     }
 
@@ -273,20 +268,25 @@ final class SubjectConfirmationData extends AbstractSamlElement
      *
      * @param \DOMElement $xml The XML element we should load
      * @return self
-     * @throws \InvalidArgumentException if the qualified name of the supplied element is wrong
+     *
+     * @throws \SAML2\Exception\InvalidDOMElementException if the qualified name of the supplied element is wrong
+     * @throws \SAML2\Exception\MissingAttributeException if the supplied element is missing any of the mandatory attributes
+     * @throws \SimpleSAML\Assert\AssertionFailedException if NotBefore or NotOnOrAfter contain an invalid date.
      */
     public static function fromXML(DOMElement $xml): object
     {
-        Assert::same($xml->localName, 'SubjectConfirmationData');
-        Assert::same($xml->namespaceURI, SubjectConfirmationData::NS);
+        Assert::same($xml->localName, 'SubjectConfirmationData', InvalidDOMElementException::class);
+        Assert::same($xml->namespaceURI, SubjectConfirmationData::NS, InvalidDOMElementException::class);
 
-        $NotBefore = $xml->hasAttribute('NotBefore')
-            ? Utils::xsDateTimeToTimestamp($xml->getAttribute('NotBefore'))
-            : null;
+        $NotBefore = self::getAttribute($xml, 'NotBefore', null);
+        if ($NotBefore !== null) {
+            $NotBefore = Utils::xsDateTimeToTimestamp($NotBefore);
+        }
 
-        $NotOnOrAfter = $xml->hasAttribute('NotOnOrAfter')
-            ? Utils::xsDateTimeToTimestamp($xml->getAttribute('NotOnOrAfter'))
-            : null;
+        $NotOnOrAfter = self::getAttribute($xml, 'NotOnOrAfter', null);
+        if ($NotOnOrAfter !== null) {
+            $NotOnOrAfter = Utils::xsDateTimeToTimestamp($NotOnOrAfter);
+        }
 
         $Recipient = self::getAttribute($xml, 'Recipient', null);
         $InResponseTo = self::getAttribute($xml, 'InResponseTo', null);
@@ -296,18 +296,12 @@ final class SubjectConfirmationData extends AbstractSamlElement
         foreach ($xml->childNodes as $n) {
             if (!($n instanceof DOMElement)) {
                 continue;
-            } elseif ($n->namespaceURI !== XMLSecurityDSig::XMLDSIGNS) {
+            } elseif ($n->namespaceURI === XMLSecurityDSig::XMLDSIGNS && $n->localName === 'KeyInfo') {
+                $info[] = KeyInfo::fromXML($n);
+                continue;
+            } else {
                 $info[] = new Chunk($n);
                 continue;
-            }
-
-            switch ($n->localName) {
-                case 'KeyInfo':
-                    $info[] = KeyInfo::fromXML($n);
-                    break;
-                default:
-                    $info[] = new Chunk($n);
-                    break;
             }
         }
 
@@ -317,7 +311,8 @@ final class SubjectConfirmationData extends AbstractSamlElement
             $Recipient,
             $InResponseTo,
             $Address,
-            $info
+            $info,
+            self::getAttributesNSFromXML($xml)
         );
     }
 
@@ -346,6 +341,10 @@ final class SubjectConfirmationData extends AbstractSamlElement
         }
         if ($this->Address !== null) {
             $e->setAttribute('Address', $this->Address);
+        }
+
+        foreach ($this->getAttributesNS() as $attr) {
+            $e->setAttributeNS($attr['namespaceURI'], $attr['qualifiedName'], $attr['value']);
         }
 
         foreach ($this->info as $n) {

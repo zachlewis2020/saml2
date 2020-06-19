@@ -4,18 +4,20 @@ declare(strict_types=1);
 
 namespace SAML2\Signature;
 
+use Mockery;
+use Psr\Log\NullLogger;
 use SAML2\CertificatesMock;
 use SAML2\Certificate\Key;
 use SAML2\Certificate\KeyCollection;
 use SAML2\Certificate\KeyLoader;
 use SAML2\Configuration\IdentityProvider;
+use SAML2\Configuration\CertificateProvider;
 use SAML2\DOMDocumentFactory;
-use SAML2\Response;
+use SAML2\Signature\PublicKeyValidator;
 use SAML2\SimpleTestLogger;
 use SAML2\Utilities\Certificate;
-use SAML2\Signature\PublicKeyValidator;
-use SAML2\Configuration\CertificateProvider;
-use SAML2\SignedElement;
+use SAML2\XML\samlp\AbstractMessage;
+use SAML2\XML\samlp\Response;
 
 class PublicKeyValidatorTest extends \Mockery\Adapter\Phpunit\MockeryTestCase
 {
@@ -28,8 +30,8 @@ class PublicKeyValidatorTest extends \Mockery\Adapter\Phpunit\MockeryTestCase
      */
     public function setUp(): void
     {
-        $this->mockConfiguration = \Mockery::mock(CertificateProvider::class);
-        $this->mockSignedElement = \Mockery::mock(SignedElement::class);
+        $this->mockConfiguration = Mockery::mock(CertificateProvider::class);
+        $this->mockSignedElement = Mockery::mock(AbstractMessage::class);
     }
 
 
@@ -41,7 +43,7 @@ class PublicKeyValidatorTest extends \Mockery\Adapter\Phpunit\MockeryTestCase
     public function it_cannot_validate_if_no_keys_can_be_loaded(): void
     {
         $keyloaderMock = $this->prepareKeyLoader(new KeyCollection());
-        $validator = new PublicKeyValidator(new \Psr\Log\NullLogger(), $keyloaderMock);
+        $validator = new PublicKeyValidator(new NullLogger(), $keyloaderMock);
 
         $this->assertFalse($validator->canValidate($this->mockSignedElement, $this->mockConfiguration));
     }
@@ -55,7 +57,7 @@ class PublicKeyValidatorTest extends \Mockery\Adapter\Phpunit\MockeryTestCase
     public function it_will_validate_when_keys_can_be_loaded(): void
     {
         $keyloaderMock = $this->prepareKeyLoader(new KeyCollection([1, 2]));
-        $validator = new PublicKeyValidator(new \Psr\Log\NullLogger(), $keyloaderMock);
+        $validator = new PublicKeyValidator(new NullLogger(), $keyloaderMock);
 
         $this->assertTrue($validator->canValidate($this->mockSignedElement, $this->mockConfiguration));
     }
@@ -99,12 +101,12 @@ class PublicKeyValidatorTest extends \Mockery\Adapter\Phpunit\MockeryTestCase
         $validator = new PublicKeyValidator(new SimpleTestLogger(), new KeyLoader());
 
         $doc = DOMDocumentFactory::fromFile(__DIR__ . '/response.xml');
-        $response = new Response($doc->firstChild);
-        $response->setSignatureKey(CertificatesMock::getPrivateKey());
+        $response = Response::fromXML($doc->firstChild);
+        $response->setSigningKey(CertificatesMock::getPrivateKey());
         $response->setCertificates([CertificatesMock::PUBLIC_KEY_PEM]);
 
         // convert to signed response
-        $response = new Response($response->toSignedXML());
+        $response = Response::fromXML($response->toXML());
 
         $this->assertTrue($validator->canValidate($response, $config), 'Cannot validate the element');
         $this->assertTrue($validator->hasValidSignature($response, $config), 'The signature is not valid');
@@ -116,7 +118,7 @@ class PublicKeyValidatorTest extends \Mockery\Adapter\Phpunit\MockeryTestCase
      */
     private function prepareKeyLoader($returnValue)
     {
-        return \Mockery::mock(KeyLoader::class)
+        return Mockery::mock(KeyLoader::class)
             ->shouldReceive('extractPublicKeys')
             ->andReturn($returnValue)
             ->getMock();

@@ -4,14 +4,19 @@ declare(strict_types=1);
 
 namespace SAML2;
 
+use Exception;
 use RobRichards\XMLSecLibs\XMLSecurityKey;
 use SAML2\Utilities\Temporal;
+use SAML2\XML\saml\Issuer;
+use SAML2\XML\samlp\AbstractMessage;
+use SAML2\XML\samlp\ArtifactResolve;
+use SAML2\XML\samlp\ArtifactResponse;
 use SimpleSAML\Configuration;
 use SimpleSAML\Metadata\MetaDataStorageHandler;
 use SimpleSAML\Module\saml\Message as MSG;
 use SimpleSAML\Store;
 use SimpleSAML\Utils\HTTP;
-use Webmozart\Assert\Assert;
+use SimpleSAML\Assert\Assert;
 
 /**
  * Class which implements the HTTP-Artifact binding.
@@ -31,22 +36,22 @@ class HTTPArtifact extends Binding
     /**
      * Create the redirect URL for a message.
      *
-     * @param  \SAML2\Message $message The message.
+     * @param  \SAML2\XML\samlp\AbstractMessage $message The message.
      * @throws \Exception
      * @return string        The URL the user should be redirected to in order to send a message.
      */
-    public function getRedirectURL(Message $message): string
+    public function getRedirectURL(AbstractMessage $message): string
     {
         /** @psalm-suppress UndefinedClass */
         $store = Store::getInstance();
         if ($store === false) {
-            throw new \Exception('Unable to send artifact without a datastore configured.');
+            throw new Exception('Unable to send artifact without a datastore configured.');
         }
 
         $generatedId = pack('H*', bin2hex(openssl_random_pseudo_bytes(20)));
         $issuer = $message->getIssuer();
         if ($issuer === null) {
-            throw new \Exception('Cannot get redirect URL, no Issuer set in the message.');
+            throw new Exception('Cannot get redirect URL, no Issuer set in the message.');
         }
         $artifact = base64_encode("\x00\x04\x00\x00" . sha1($issuer->getValue(), true) . $generatedId);
         $artifactData = $message->toXML();
@@ -64,7 +69,7 @@ class HTTPArtifact extends Binding
 
         $destination = $message->getDestination();
         if ($destination === null) {
-            throw new \Exception('Cannot get redirect URL, no destination set in the message.');
+            throw new Exception('Cannot get redirect URL, no destination set in the message.');
         }
         /** @psalm-suppress UndefinedClass */
         return HTTP::addURLparameters($destination, $params);
@@ -76,10 +81,11 @@ class HTTPArtifact extends Binding
      *
      * Note: This function never returns.
      *
-     * @param \SAML2\Message $message The message we should send.
+     * @param \SAML2\XML\samlp\AbstractMessage $message The message we should send.
      * @return void
+     * @throws \Exception
      */
-    public function send(Message $message): void
+    public function send(AbstractMessage $message): void
     {
         $destination = $this->getRedirectURL($message);
         Utils::getContainer()->redirect($destination);
@@ -92,18 +98,18 @@ class HTTPArtifact extends Binding
      * Throws an exception if it is unable receive the message.
      *
      * @throws \Exception
-     * @return \SAML2\Message The received message.
+     * @return \SAML2\XML\samlp\AbstractMessage The received message.
      *
-     * @throws \InvalidArgumentException if assertions are false
+     * @throws \SimpleSAML\Assert\AssertionFailedException if assertions are false
      */
-    public function receive(): Message
+    public function receive(): AbstractMessage
     {
         if (array_key_exists('SAMLart', $_REQUEST)) {
             $artifact = base64_decode($_REQUEST['SAMLart']);
             $endpointIndex = bin2hex(substr($artifact, 2, 2));
             $sourceId = bin2hex(substr($artifact, 4, 20));
         } else {
-            throw new \Exception('Missing SAMLart parameter.');
+            throw new Exception('Missing SAMLart parameter.');
         }
 
         /** @psalm-suppress UndefinedClass */
@@ -112,7 +118,7 @@ class HTTPArtifact extends Binding
         $idpMetadata = $metadataHandler->getMetaDataConfigForSha1($sourceId, 'saml20-idp-remote');
 
         if ($idpMetadata === null) {
-            throw new \Exception('No metadata found for remote provider with SHA1 ID: ' . var_export($sourceId, true));
+            throw new Exception('No metadata found for remote provider with SHA1 ID: ' . var_export($sourceId, true));
         }
 
         $endpoint = null;
@@ -124,15 +130,12 @@ class HTTPArtifact extends Binding
         }
 
         if ($endpoint === null) {
-            throw new \Exception('No ArtifactResolutionService with the correct index.');
+            throw new Exception('No ArtifactResolutionService with the correct index.');
         }
 
         Utils::getContainer()->getLogger()->debug(
             "ArtifactResolutionService endpoint being used is := " . $endpoint['Location']
         );
-
-        // Construct the ArtifactResolve Request
-        $ar = new ArtifactResolve();
 
         /**
          * @psalm-suppress UndefinedClass
@@ -142,11 +145,11 @@ class HTTPArtifact extends Binding
 
         /**
          * Set the request attributes
-         * @psalm-suppress UndefinedClass
          */
-        $ar->setIssuer($this->spMetadata->getString('entityid'));
-        $ar->setArtifact($_REQUEST['SAMLart']);
-        $ar->setDestination($endpoint['Location']);
+        $issuer = new Issuer($this->spMetadata->getString('entityid'));
+
+        // Construct the ArtifactResolve Request
+        $ar = new ArtifactResolve($_REQUEST['SAMLart'], $issuer, null, null, null, $endpoint['Location']);
 
         // sign the request
         /** @psalm-suppress UndefinedClass */
@@ -155,21 +158,20 @@ class HTTPArtifact extends Binding
         $soap = new SOAPClient();
 
         // Send message through SoapClient
-        /** @var \SAML2\ArtifactResponse $artifactResponse */
+        /** @var \SAML2\XML\samlp\ArtifactResponse $artifactResponse */
         $artifactResponse = $soap->send($ar, $this->spMetadata);
 
         if (!$artifactResponse->isSuccess()) {
-            throw new \Exception('Received error from ArtifactResolutionService.');
+            throw new Exception('Received error from ArtifactResolutionService.');
         }
 
-        $xml = $artifactResponse->getAny();
-        if ($xml === null) {
+        $samlResponse = $artifactResponse->getMessage();
+        if ($samlResponse === null) {
             /* Empty ArtifactResponse - possibly because of Artifact replay? */
 
-            throw new \Exception('Empty ArtifactResponse received, maybe a replay?');
+            throw new Exception('Empty ArtifactResponse received, maybe a replay?');
         }
 
-        $samlResponse = Message::fromXML($xml);
         $samlResponse->addValidator([get_class($this), 'validateSignature'], $artifactResponse);
 
         if (isset($_REQUEST['RelayState'])) {
@@ -196,12 +198,13 @@ class HTTPArtifact extends Binding
     /**
      * A validator which returns true if the ArtifactResponse was signed with the given key
      *
-     * @param \SAML2\ArtifactResponse $message
-     * @param XMLSecurityKey $key
+     * @param \SAML2\XML\samlp\ArtifactResponse $message
+     * @param \RobRichards\XMLSecLibs\XMLSecurityKey $key
      * @return bool
      */
     public static function validateSignature(ArtifactResponse $message, XMLSecurityKey $key): bool
     {
+        // @todo verify if this works and/or needs to do anything more. Ref. HTTPRedirect binding
         return $message->validate($key);
     }
 }

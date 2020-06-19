@@ -5,12 +5,13 @@ declare(strict_types=1);
 namespace SAML2\XML\md;
 
 use DOMElement;
-use SAML2\ExtensionsTrait;
+use SAML2\Exception\InvalidDOMElementException;
 use SAML2\Utils;
 use SAML2\XML\alg\AbstractAlgElement as ALG;
 use SAML2\XML\alg\DigestMethod;
 use SAML2\XML\alg\SigningMethod;
 use SAML2\XML\Chunk;
+use SAML2\XML\ExtensionsTrait;
 use SAML2\XML\mdattr\EntityAttributes;
 use SAML2\XML\mdrpi\AbstractMdrpiElement as MDRPI;
 use SAML2\XML\mdrpi\PublicationInfo;
@@ -19,7 +20,7 @@ use SAML2\XML\mdui\AbstractMduiElement as MDUI;
 use SAML2\XML\mdui\DiscoHints;
 use SAML2\XML\mdui\UIInfo;
 use SAML2\XML\shibmd\Scope;
-use Webmozart\Assert\Assert;
+use SimpleSAML\Assert\Assert;
 
 /**
  * Class for handling SAML2 metadata extensions.
@@ -39,19 +40,22 @@ final class Extensions extends AbstractMdElement
      *
      * @param \DOMElement $xml
      * @return \SAML2\XML\md\Extensions
-     * @throws \InvalidArgumentException if the qualified name of the supplied element is wrong
+     *
+     * @throws \SAML2\Exception\InvalidDOMElementException if the qualified name of the supplied element is wrong
      */
     public static function fromXML(DOMElement $xml): object
     {
         Assert::eq(
             $xml->namespaceURI,
             self::NS,
-            'Unknown namespace \'' . strval($xml->namespaceURI) . '\' for Extensions element.'
+            'Unknown namespace \'' . strval($xml->namespaceURI) . '\' for Extensions element.',
+            InvalidDOMElementException::class
         );
         Assert::eq(
             $xml->localName,
             static::getClassName(static::class),
-            'Invalid Extensions element \'' . $xml->localName . '\''
+            'Invalid Extensions element \'' . $xml->localName . '\'',
+            InvalidDOMElementException::class
         );
         $ret = [];
         $supported = [

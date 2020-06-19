@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace SAML2;
 
+use Exception;
+use SAML2\XML\samlp\AbstractMessage;
+
 /**
  * Base class for SAML 2 bindings.
  *
@@ -33,20 +36,19 @@ abstract class Binding
     {
         switch ($urn) {
             case Constants::BINDING_HTTP_POST:
+            case Constants::BINDING_HOK_SSO:
                 return new HTTPPost();
             case Constants::BINDING_HTTP_REDIRECT:
                 return new HTTPRedirect();
             case Constants::BINDING_HTTP_ARTIFACT:
                 return new HTTPArtifact();
-            case Constants::BINDING_HOK_SSO:
-                return new HTTPPost();
             // ECP ACS is defined with the PAOS binding, but as the IdP, we
             // talk to the ECP using SOAP -- if support for ECP as an SP is
             // implemented, this logic may need to change
             case Constants::BINDING_PAOS:
                 return new SOAP();
             default:
-                throw new \Exception('Unsupported binding: ' . var_export($urn, true));
+                throw new Exception('Unsupported binding: ' . var_export($urn, true));
         }
     }
 
@@ -104,7 +106,7 @@ abstract class Binding
             $logger->warning('Content-Type: ' . var_export($_SERVER['CONTENT_TYPE'], true));
         }
 
-        throw new \Exception('Unable to find the SAML 2 binding used for this request.');
+        throw new Exception('Unable to find the SAML 2 binding used for this request.');
     }
 
 
@@ -139,10 +141,10 @@ abstract class Binding
      * This function will send a message using the specified binding.
      * The message will be delivered to the destination set in the message.
      *
-     * @param \SAML2\Message $message The message which should be sent.
+     * @param \SAML2\XML\samlp\AbstractMessage $message The message which should be sent.
      * @return void
      */
-    abstract public function send(Message $message): void;
+    abstract public function send(AbstractMessage $message): void;
 
 
     /**
@@ -151,7 +153,7 @@ abstract class Binding
      * This function will extract the message from the current request.
      * An exception will be thrown if we are unable to process the message.
      *
-     * @return \SAML2\Message The received message.
+     * @return \SAML2\XML\samlp\AbstractMessage The received message.
      */
-    abstract public function receive(): Message;
+    abstract public function receive(): AbstractMessage;
 }

@@ -6,7 +6,7 @@ namespace SAML2\XML;
 
 use DOMElement;
 use SAML2\Utils;
-use Webmozart\Assert\Assert;
+use SimpleSAML\Assert\Assert;
 
 /**
  * Serializable class used to hold an XML element.
@@ -100,7 +100,7 @@ final class Chunk extends AbstractXMLElement
      *
      * @param string $localName
      * @return void
-     * @throws \InvalidArgumentException if $localName is an empty string
+     * @throws \SimpleSAML\Assert\AssertionFailedException if $localName is an empty string
      */
     public function setLocalName(string $localName): void
     {

@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace SAML2\XML\md;
 
-use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use SAML2\Constants;
 use SAML2\DOMDocumentFactory;
+use SAML2\Exception\InvalidDOMElementException;
+use SAML2\Exception\MissingAttributeException;
+use SimpleSAML\Assert\AssertionFailedException;
 
 /**
  * Class \SAML2\XML\md\EndpointType
@@ -61,7 +63,7 @@ XML
      */
     public function testMarshallingWithEmptyBinding(): void
     {
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(AssertionFailedException::class);
         $this->expectExceptionMessage('The Binding of an endpoint cannot be empty.');
         new AttributeService('', 'foo');
     }
@@ -72,7 +74,7 @@ XML
      */
     public function testMarshallingWithEmptyLocation(): void
     {
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(AssertionFailedException::class);
         $this->expectExceptionMessage('The Location of an endpoint cannot be empty.');
         new AttributeService('foo', '');
     }
@@ -111,7 +113,7 @@ XML
      */
     public function testUnmarshallingUnexpectedEndpoint(): void
     {
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(InvalidDOMElementException::class);
         $this->expectExceptionMessage(
             'Unexpected name for endpoint: AttributeService. Expected: AssertionIDRequestService.'
         );
@@ -125,8 +127,8 @@ XML
     public function testUnmarshallingWithoutBinding(): void
     {
         $this->document->documentElement->removeAttribute('Binding');
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Missing \'Binding\' attribute from md:AttributeService.');
+        $this->expectException(MissingAttributeException::class);
+        $this->expectExceptionMessage('Missing \'Binding\' attribute on md:AttributeService.');
         AttributeService::fromXML($this->document->documentElement);
     }
 
@@ -137,7 +139,7 @@ XML
     public function testUnmarshallingWithEmptyBinding(): void
     {
         $this->document->documentElement->setAttribute('Binding', '');
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(AssertionFailedException::class);
         $this->expectExceptionMessage('The Binding of an endpoint cannot be empty.');
         AttributeService::fromXML($this->document->documentElement);
     }
@@ -149,8 +151,8 @@ XML
     public function testUnmarshallingWithoutLocation(): void
     {
         $this->document->documentElement->removeAttribute('Location');
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Missing \'Location\' attribute from md:AttributeService.');
+        $this->expectException(MissingAttributeException::class);
+        $this->expectExceptionMessage('Missing \'Location\' attribute on md:AttributeService.');
         AttributeService::fromXML($this->document->documentElement);
     }
 
@@ -161,7 +163,7 @@ XML
     public function testUnmarshallingWithEmptyLocation(): void
     {
         $this->document->documentElement->setAttribute('Location', '');
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(AssertionFailedException::class);
         $this->expectExceptionMessage('The Location of an endpoint cannot be empty.');
         AttributeService::fromXML($this->document->documentElement);
     }

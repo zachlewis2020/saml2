@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SAML2\XML\md;
 
-use Webmozart\Assert\Assert;
+use SimpleSAML\Assert\Assert;
 
 /**
  * A class implementing the md:ArtifactResolutionService element.
@@ -24,7 +24,7 @@ final class ArtifactResolutionService extends AbstractIndexedEndpointType
      * @param bool|null $isDefault
      * @param string|null $unused
      * @param array $attributes
-     * @throws \InvalidArgumentException
+     * @throws \SimpleSAML\Assert\AssertionFailedException
      */
     public function __construct(
         int $index,

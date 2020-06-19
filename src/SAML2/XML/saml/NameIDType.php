@@ -5,9 +5,8 @@ declare(strict_types=1);
 namespace SAML2\XML\saml;
 
 use DOMElement;
-use SAML2\Constants;
-use SAML2\DOMDocumentFactory;
-use Webmozart\Assert\Assert;
+use SAML2\XML\IDNameQualifiersTrait;
+use SimpleSAML\Assert\Assert;
 
 /**
  * SAML NameIDType abstract data type.
@@ -16,8 +15,10 @@ use Webmozart\Assert\Assert;
  * @package simplesamlphp/saml2
  */
 
-abstract class NameIDType extends BaseIDType
+abstract class NameIDType extends AbstractSamlElement implements IdentifierInterface
 {
+    use IDNameQualifiersTrait;
+
     /**
      * A URI reference representing the classification of string-based identifier information. See Section 8.3 for the
      * SAML-defined URI references that MAY be used as the value of the Format attribute and their associated
@@ -65,18 +66,18 @@ abstract class NameIDType extends BaseIDType
      * @param string|null $NameQualifier
      * @param string|null $SPNameQualifier
      */
-    public function __construct(
+    protected function __construct(
         string $value,
         ?string $NameQualifier = null,
         ?string $SPNameQualifier = null,
         ?string $Format = null,
         ?string $SPProvidedID = null
     ) {
-        parent::__construct($NameQualifier, $SPNameQualifier);
-
+        $this->setValue($value);
+        $this->setNameQualifier($NameQualifier);
+        $this->setSPNameQualifier($SPNameQualifier);
         $this->setFormat($Format);
         $this->setSPProvidedID($SPProvidedID);
-        $this->setValue($value);
     }
 
 
@@ -131,8 +132,6 @@ abstract class NameIDType extends BaseIDType
      * Collect the value of the value-property
      *
      * @return string
-     *
-     * @throws \InvalidArgumentException if assertions are false
      */
     public function getValue(): string
     {
@@ -143,8 +142,9 @@ abstract class NameIDType extends BaseIDType
     /**
      * Set the value of the value-property
      * @param string $value
-     *
      * @return void
+     *
+     * @throws \SimpleSAML\Assert\AssertionFailedException if assertions are false
      */
     private function setValue(string $value): void
     {
@@ -161,7 +161,16 @@ abstract class NameIDType extends BaseIDType
      */
     public function toXML(DOMElement $parent = null): DOMElement
     {
-        $element = parent::toXML($parent);
+        /** @psalm-var \DOMDocument $element->ownerDocument */
+        $element = $this->instantiateParentElement($parent);
+
+        if ($this->NameQualifier !== null) {
+            $element->setAttribute('NameQualifier', $this->NameQualifier);
+        }
+
+        if ($this->SPNameQualifier !== null) {
+            $element->setAttribute('SPNameQualifier', $this->SPNameQualifier);
+        }
 
         if ($this->Format !== null) {
             $element->setAttribute('Format', $this->Format);

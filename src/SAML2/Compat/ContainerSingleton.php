@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace SAML2\Compat;
 
 use SAML2\Compat\Ssp\Container;
+use SAML2\XML\AbstractXMLElement;
+use SimpleSAML\Assert\Assert;
 
 class ContainerSingleton
 {
-    /**
-     * @var \SAML2\Compat\ContainerInterface|null
-     */
+    /** @var \SAML2\Compat\ContainerInterface|null */
     protected static $container = null;
 
 

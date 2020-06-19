@@ -7,8 +7,8 @@ namespace SAML2\Compat\Ssp;
 use Psr\Log\InvalidArgumentException;
 use Psr\Log\LoggerInterface;
 use Psr\Log\LogLevel;
+use SimpleSAML\Assert\Assert;
 use SimpleSAML\Logger as SspLogger;
-use Webmozart\Assert\Assert;
 
 class Logger implements LoggerInterface
 {
@@ -159,7 +159,7 @@ class Logger implements LoggerInterface
      * @param array $context
      * @return void
      *
-     * @throws \InvalidArgumentException if assertions are false
+     * @throws \SimpleSAML\Assert\AssertionFailedException if assertions are false
      *
      * Type hint not possible due to upstream method signature
      */

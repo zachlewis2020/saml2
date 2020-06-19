@@ -7,10 +7,13 @@ namespace SAML2\XML\md;
 use DOMElement;
 use Exception;
 use SAML2\Constants;
+use SAML2\Exception\InvalidDOMElementException;
+use SAML2\Exception\MissingElementException;
+use SAML2\Exception\TooManyElementsException;
 use SAML2\Utils;
 use SAML2\XML\ExtendableAttributesTrait;
 use SAML2\XML\ExtendableElementTrait;
-use Webmozart\Assert\Assert;
+use SimpleSAML\Assert\Assert;
 
 /**
  * Class representing SAML 2 Organization element.
@@ -81,7 +84,7 @@ final class Organization extends AbstractMdElement
      *
      * @param \SAML2\XML\md\OrganizationName[] $organizationName
      * @return void
-     * @throws \InvalidArgumentException
+     * @throws \SimpleSAML\Assert\AssertionFailedException
      */
     protected function setOrganizationName(array $organizationName): void
     {
@@ -106,7 +109,7 @@ final class Organization extends AbstractMdElement
      *
      * @param \SAML2\XML\md\OrganizationDisplayName[] $organizationDisplayName
      * @return void
-     * @throws \InvalidArgumentException
+     * @throws \SimpleSAML\Assert\AssertionFailedException
      */
     protected function setOrganizationDisplayName(array $organizationDisplayName): void
     {
@@ -130,7 +133,7 @@ final class Organization extends AbstractMdElement
      * Set the value of the OrganizationURL property.
      *
      * @param string[] $organizationURL
-     * @throws \InvalidArgumentException
+     * @throws \SimpleSAML\Assert\AssertionFailedException
      */
     protected function setOrganizationURL(array $organizationURL): void
     {
@@ -143,27 +146,27 @@ final class Organization extends AbstractMdElement
      * Initialize an Organization element.
      *
      * @param \DOMElement $xml The XML element we should load.
-     *
      * @return self
-     * @throws \InvalidArgumentException if the qualified name of the supplied element is wrong
-     * @throws \InvalidArgumentException if the XML lacks any of the mandatory elements.
+     *
+     * @throws \SAML2\Exception\InvalidDOMElementException if the qualified name of the supplied element is wrong
+     * @throws \SAML2\Exception\MissingElementException if one of the mandatory child-elements is missing
      */
     public static function fromXML(DOMElement $xml): object
     {
-        Assert::same($xml->localName, 'Organization');
-        Assert::same($xml->namespaceURI, Organization::NS);
+        Assert::same($xml->localName, 'Organization', InvalidDOMElementException::class);
+        Assert::same($xml->namespaceURI, Organization::NS, InvalidDOMElementException::class);
 
         $names = OrganizationName::getChildrenOfClass($xml);
-        Assert::minCount($names, 1, 'Missing at least one OrganizationName.');
+        Assert::minCount($names, 1, 'Missing at least one OrganizationName.', MissingElementException::class);
 
         $displayNames = OrganizationDisplayName::getChildrenOfClass($xml);
-        Assert::minCount($displayNames, 1, 'Missing at least one OrganizationDisplayName');
+        Assert::minCount($displayNames, 1, 'Missing at least one OrganizationDisplayName', MissingElementException::class);
 
         $url = Utils::extractLocalizedStrings($xml, Constants::NS_MD, 'OrganizationURL');
-        Assert::allStringNotEmpty($url, 'No localized organization URL found.');
+        Assert::allStringNotEmpty($url, 'No localized organization URL found.', MissingElementException::class);
 
         $extensions = Extensions::getChildrenOfClass($xml);
-        Assert::maxCount($extensions, 1, 'Cannot process more than one md:Extensions element.');
+        Assert::maxCount($extensions, 1, 'Cannot process more than one md:Extensions element.', TooManyElementsException::class);
 
         return new self($names, $displayNames, $url, !empty($extensions) ? $extensions[0] : null);
     }

@@ -5,9 +5,10 @@ declare(strict_types=1);
 namespace SAML2\XML\mdui;
 
 use DOMElement;
+use SAML2\Exception\InvalidDOMElementException;
 use SAML2\Utils;
 use SAML2\XML\Chunk;
-use Webmozart\Assert\Assert;
+use SimpleSAML\Assert\Assert;
 
 /**
  * Class for handling the metadata extensions for login and discovery user interface
@@ -116,11 +117,12 @@ final class UIInfo extends AbstractMduiElement
      * @param \SAML2\XML\mdui\Keywords[] $keywords
      * @return void
      *
-     * @throws \InvalidArgumentException if assertions are false
+     * @throws \SimpleSAML\Assert\AssertionFailedException if assertions are false
      */
     private function setKeywords(array $keywords): void
     {
         Assert::allIsInstanceOf($keywords, Keywords::class);
+
         $this->Keywords = $keywords;
     }
 
@@ -156,6 +158,8 @@ final class UIInfo extends AbstractMduiElement
      */
     private function setDisplayName(array $displayName): void
     {
+        Assert::allStringNotEmpty($displayName);
+
         $this->DisplayName = $displayName;
     }
 
@@ -179,6 +183,8 @@ final class UIInfo extends AbstractMduiElement
      */
     private function setDescription(array $description): void
     {
+        Assert::allStringNotEmpty($description);
+
         $this->Description = $description;
     }
 
@@ -201,6 +207,8 @@ final class UIInfo extends AbstractMduiElement
      */
     private function setInformationURL(array $informationURL): void
     {
+        Assert::allStringNotEmpty($informationURL);
+
         $this->InformationURL = $informationURL;
     }
 
@@ -224,6 +232,8 @@ final class UIInfo extends AbstractMduiElement
      */
     private function setPrivacyStatementURL(array $privacyStatementURL): void
     {
+        Assert::allStringNotEmpty($privacyStatementURL);
+
         $this->PrivacyStatementURL = $privacyStatementURL;
     }
 
@@ -247,6 +257,8 @@ final class UIInfo extends AbstractMduiElement
      */
     private function setLogo(array $logo): void
     {
+        Assert::allIsInstanceOf($logo, Logo::class);
+
         $this->Logo = $logo;
     }
 
@@ -282,6 +294,8 @@ final class UIInfo extends AbstractMduiElement
      */
     private function setChildren(array $children): void
     {
+        Assert::allIsInstanceOf($children, Chunk::class);
+
         $this->children = $children;
     }
 
@@ -322,12 +336,13 @@ final class UIInfo extends AbstractMduiElement
      *
      * @param \DOMElement $xml The XML element we should load
      * @return self
-     * @throws \InvalidArgumentException if the qualified name of the supplied element is wrong
+     *
+     * @throws \SAML2\Exception\InvalidDOMElementException if the qualified name of the supplied element is wrong
      */
     public static function fromXML(DOMElement $xml): object
     {
-        Assert::same($xml->localName, 'UIInfo');
-        Assert::same($xml->namespaceURI, UIInfo::NS);
+        Assert::same($xml->localName, 'UIInfo', InvalidDOMElementException::class);
+        Assert::same($xml->namespaceURI, UIInfo::NS, InvalidDOMElementException::class);
 
         $DisplayName = Utils::extractLocalizedStrings($xml, UIInfo::NS, 'DisplayName');
         $Description = Utils::extractLocalizedStrings($xml, UIInfo::NS, 'Description');

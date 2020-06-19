@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace SAML2\XML\mdattr;
 
 use DOMElement;
-use InvalidArgumentException;
+use SAML2\Exception\InvalidDOMElementException;
 use SAML2\Utils;
 use SAML2\XML\Assertion;
 use SAML2\XML\saml\Attribute;
-use Webmozart\Assert\Assert;
+use SimpleSAML\Assert\Assert;
 
 /**
  * Class for handling the EntityAttributes metadata extension.
@@ -56,8 +56,7 @@ final class EntityAttributes extends AbstractMdattrElement
      *
      * @param (\SAML2\XML\saml\Attribute|\SAML2\XML\Assertion)[] $children
      * @return void
-     *
-     * @throws \InvalidArgumentException if $children contains objects of the wrong type
+     * @throws \SimpleSAML\Assert\AssertionFailedException
      */
     private function setChildren(array $children): void
     {
@@ -72,8 +71,7 @@ final class EntityAttributes extends AbstractMdattrElement
      *
      * @param \SAML2\XML\saml\Attribute|\SAML2\XML\Assertion $child
      * @return void
-     *
-     * @throws \InvalidArgumentException if $child is of the wrong type
+     * @throws \SimpleSAML\Assert\AssertionFailedException
      */
     public function addChild($child): void
     {
@@ -88,12 +86,13 @@ final class EntityAttributes extends AbstractMdattrElement
      *
      * @param \DOMElement $xml The XML element we should load
      * @return self
-     * @throws \InvalidArgumentException if the qualified name of the supplied element is wrong
+     *
+     * @throws \SAML2\Exception\InvalidDOMElementException if the qualified name of the supplied element is wrong
      */
     public static function fromXML(DOMElement $xml): object
     {
-        Assert::same($xml->localName, 'EntityAttributes');
-        Assert::same($xml->namespaceURI, EntityAttributes::NS);
+        Assert::same($xml->localName, 'EntityAttributes', InvalidDOMElementException::class);
+        Assert::same($xml->namespaceURI, EntityAttributes::NS, InvalidDOMElementException::class);
 
         $children = [];
 

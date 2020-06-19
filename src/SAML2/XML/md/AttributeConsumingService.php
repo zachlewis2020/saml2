@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace SAML2\XML\md;
 
 use DOMElement;
+use SAML2\Exception\InvalidDOMElementException;
+use SAML2\Exception\MissingElementException;
 use SAML2\Utils;
-use Webmozart\Assert\Assert;
+use SimpleSAML\Assert\Assert;
 
 /**
  * Class representing SAML 2 Metadata AttributeConsumingService element.
@@ -68,26 +70,27 @@ final class AttributeConsumingService extends AbstractMdElement
      *
      * @param \DOMElement $xml The XML element we should load.
      * @return self
-     * @throws \InvalidArgumentException if the qualified name of the supplied element is wrong
+     *
+     * @throws \SAML2\Exception\InvalidDOMElementException if the qualified name of the supplied element is wrong
+     * @throws \SAML2\Exception\MissingElementException if one of the mandatory child-elements is missing
      */
     public static function fromXML(DOMElement $xml): object
     {
-        Assert::same($xml->localName, 'AttributeConsumingService');
-        Assert::same($xml->namespaceURI, AttributeConsumingService::NS);
+        Assert::same($xml->localName, 'AttributeConsumingService', InvalidDOMElementException::class);
+        Assert::same($xml->namespaceURI, AttributeConsumingService::NS, InvalidDOMElementException::class);
 
-        /** @var int $index */
         $index = self::getIntegerAttribute($xml, 'index');
-
         $names = ServiceName::getChildrenOfClass($xml);
-        Assert::minCount($names, 1, 'Missing at least one ServiceName in AttributeConsumingService.');
+        Assert::minCount(
+            $names,
+            1,
+            'Missing at least one ServiceName in AttributeConsumingService.',
+            MissingElementException::class
+        );
 
         $descriptions = ServiceDescription::getChildrenOfClass($xml);
 
-        $requestedAttrs = [];
-        /** @var \DOMElement $ra */
-        foreach (Utils::xpQuery($xml, './saml_metadata:RequestedAttribute') as $ra) {
-            $requestedAttrs[] = RequestedAttribute::fromXML($ra);
-        }
+        $requestedAttrs = RequestedAttribute::getChildrenOfClass($xml);
 
         return new self(
             $index,
@@ -114,11 +117,16 @@ final class AttributeConsumingService extends AbstractMdElement
      * Set the localized names of this service.
      *
      * @param \SAML2\XML\md\ServiceName[] $serviceNames
-     * @throws \InvalidArgumentException
+     * @throws \SimpleSAML\Assert\AssertionFailedException
      */
     protected function setServiceNames(array $serviceNames): void
     {
-        Assert::minCount($serviceNames, 1, 'Missing at least one ServiceName in AttributeConsumingService.');
+        Assert::minCount(
+            $serviceNames,
+            1,
+            'Missing at least one ServiceName in AttributeConsumingService.',
+            MissingElementException::class
+        );
         Assert::allIsInstanceOf(
             $serviceNames,
             ServiceName::class,
@@ -143,7 +151,7 @@ final class AttributeConsumingService extends AbstractMdElement
      * Set the value of the ServiceDescription-property
      *
      * @param \SAML2\XML\md\ServiceDescription[] $serviceDescriptions
-     * @throws \InvalidArgumentException
+     * @throws \SimpleSAML\Assert\AssertionFailedException
      */
     protected function setServiceDescriptions(array $serviceDescriptions): void
     {
@@ -171,14 +179,20 @@ final class AttributeConsumingService extends AbstractMdElement
      * Set the value of the RequestedAttribute-property
      *
      * @param \SAML2\XML\md\RequestedAttribute[] $requestedAttributes
-     * @throws \InvalidArgumentException
+     * @throws \SimpleSAML\Assert\AssertionFailedException
      */
     public function setRequestedAttributes(array $requestedAttributes): void
     {
+        Assert::allIsInstanceOf(
+            $requestedAttributes,
+            RequestedAttribute::class,
+            'Requested attributes must be specified as RequestedAttribute objects.'
+        );
         Assert::minCount(
             $requestedAttributes,
             1,
-            'Missing at least one RequestedAttribute in AttributeConsumingService.'
+            'Missing at least one RequestedAttribute in AttributeConsumingService.',
+            MissingElementException::class
         );
         $this->requestedAttributes = $requestedAttributes;
     }
@@ -189,7 +203,6 @@ final class AttributeConsumingService extends AbstractMdElement
      *
      * @param \DOMElement $parent The element we should append this AttributeConsumingService to.
      * @return \DOMElement
-     * @throws \InvalidArgumentException if the qualified name of the supplied element is wrong
      */
     public function toXML(DOMElement $parent = null): DOMElement
     {

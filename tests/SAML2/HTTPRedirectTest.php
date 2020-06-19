@@ -8,10 +8,12 @@ use Exception;
 use PHPUnit\Framework\Error\Warning;
 use SAML2\DOMDocumentFactory;
 use SAML2\HTTPRedirect;
-use SAML2\AuthnRequest;
-use SAML2\Request;
-use SAML2\Response;
 use SAML2\XML\saml\Issuer;
+use SAML2\XML\samlp\AbstractRequest;
+use SAML2\XML\samlp\AuthnRequest;
+use SAML2\XML\samlp\Response;
+use SAML2\XML\samlp\Status;
+use SAML2\XML\samlp\StatusCode;
 
 class HTTPRedirectTest extends \Mockery\Adapter\Phpunit\MockeryTestCase
 {
@@ -27,7 +29,7 @@ class HTTPRedirectTest extends \Mockery\Adapter\Phpunit\MockeryTestCase
 
         $hr = new HTTPRedirect();
         $request = $hr->receive();
-        $this->assertInstanceOf(Request::class, $request);
+        $this->assertInstanceOf(AbstractRequest::class, $request);
         $this->assertEquals(
             'https://profile.surfconext.nl/simplesaml/module.php/saml/sp/metadata.php/default-sp',
             $request->getIssuer()->getValue()
@@ -64,7 +66,7 @@ class HTTPRedirectTest extends \Mockery\Adapter\Phpunit\MockeryTestCase
 
         $hr = new HTTPRedirect();
         $request = $hr->receive();
-        $this->assertInstanceOf(Request::class, $request);
+        $this->assertInstanceOf(AbstractRequest::class, $request);
         $relaystate = $request->getRelayState();
         $this->assertEquals('https://profile.surfconext.nl/', $relaystate);
     }
@@ -82,7 +84,7 @@ class HTTPRedirectTest extends \Mockery\Adapter\Phpunit\MockeryTestCase
 
         $hr = new HTTPRedirect();
         $request = $hr->receive();
-        $this->assertInstanceOf(Request::class, $request);
+        $this->assertInstanceOf(AbstractRequest::class, $request);
         $relaystate = $request->getRelayState();
         $this->assertEquals(
             'https://beta.surfnet.nl/simplesaml/module.php/core/authenticate.php?as=Braindrops',
@@ -232,13 +234,12 @@ class HTTPRedirectTest extends \Mockery\Adapter\Phpunit\MockeryTestCase
      */
     public function testSendAuthnResponse(): void
     {
+        $status = new Status(new StatusCode());
         $issuer = new Issuer('testIssuer');
 
-        $response = new Response();
-        $response->setIssuer($issuer);
+        $response = new Response($status, $issuer, null, null, null, 'http://example.org/login?success=yes');
         $response->setRelayState('http://example.org');
-        $response->setDestination('http://example.org/login?success=yes');
-        $response->setSignatureKey(CertificatesMock::getPrivateKey());
+        $response->setSigningKey(CertificatesMock::getPrivateKey());
         $hr = new HTTPRedirect();
         $hr->send($response);
     }
@@ -251,10 +252,10 @@ class HTTPRedirectTest extends \Mockery\Adapter\Phpunit\MockeryTestCase
      */
     public function testSendAuthnResponseBespokeDestination(): void
     {
+        $status = new Status(new StatusCode());
         $issuer = new Issuer('testIssuer');
 
-        $response = new Response();
-        $response->setIssuer($issuer);
+        $response = new Response($status, $issuer);
         $hr = new HTTPRedirect();
         $hr->setDestination('gopher://myurl');
         $hr->send($response);

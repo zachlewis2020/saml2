@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace SAML2\XML\mdui;
 
-use Exception;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use SAML2\DOMDocumentFactory;
+use SAML2\Exception\MissingAttributeException;
 use SAML2\Utils;
+use SimpleSAML\Assert\AssertionFailedException;
 
 /**
  * Class \SAML2\XML\mdui\LogoTest
@@ -22,7 +23,7 @@ class LogoTest extends TestCase
     private $data = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
 
     /** @var string */
-    private $url = 'https://static.example.org/images/lofos/logo300x200.png';
+    private $url = 'https://static.example.org/images/logos/logo300x200.png';
 
 
     /**
@@ -108,7 +109,7 @@ XML
         $document = $this->document;
         $document->documentElement->textContent = '';
 
-        $this->expectException(Exception::class);
+        $this->expectException(AssertionFailedException::class);
         $this->expectExceptionMessage('Missing url value for Logo');
         Logo::fromXML($document->documentElement);
     }
@@ -138,8 +139,8 @@ XML
         $document = $this->document;
         $document->documentElement->removeAttribute('width');
 
-        $this->expectException(Exception::class);
-        $this->expectExceptionMessage('Missing width of Logo');
+        $this->expectException(MissingAttributeException::class);
+        $this->expectExceptionMessage("Missing 'width' attribute on mdui:Logo.");
         Logo::fromXML($document->documentElement);
     }
 
@@ -153,8 +154,8 @@ XML
         $document = $this->document;
         $document->documentElement->removeAttribute('height');
 
-        $this->expectException(Exception::class);
-        $this->expectExceptionMessage('Missing height of Logo');
+        $this->expectException(MissingAttributeException::class);
+        $this->expectExceptionMessage("Missing 'height' attribute on mdui:Logo.");
         Logo::fromXML($document->documentElement);
     }
 

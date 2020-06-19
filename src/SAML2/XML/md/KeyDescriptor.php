@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace SAML2\XML\md;
 
 use DOMElement;
+use SAML2\Exception\InvalidDOMElementException;
+use SAML2\Exception\MissingElementException;
+use SAML2\Exception\TooManyElementsException;
 use SAML2\XML\ds\KeyInfo;
-use Webmozart\Assert\Assert;
+use SimpleSAML\Assert\Assert;
 
 /**
  * Class representing a KeyDescriptor element.
@@ -72,7 +75,7 @@ final class KeyDescriptor extends AbstractMdElement
      * Set the value of the use property.
      *
      * @param string|null $use
-     * @throws \InvalidArgumentException
+     * @throws \SimpleSAML\Assert\AssertionFailedException
      */
     protected function setUse(?string $use): void
     {
@@ -122,7 +125,7 @@ final class KeyDescriptor extends AbstractMdElement
      * Set the value of the EncryptionMethod property.
      *
      * @param \SAML2\XML\md\EncryptionMethod[] $encryptionMethods
-     * @throws \InvalidArgumentException
+     * @throws \SimpleSAML\Assert\AssertionFailedException
      */
     protected function setEncryptionMethods(array $encryptionMethods): void
     {
@@ -136,16 +139,19 @@ final class KeyDescriptor extends AbstractMdElement
      *
      * @param \DOMElement $xml The XML element we should load.
      * @return \SAML2\XML\md\KeyDescriptor
-     * @throws \InvalidArgumentException if the qualified name of the supplied element is wrong
+     *
+     * @throws \SAML2\Exception\InvalidDOMElementException if the qualified name of the supplied element is wrong
+     * @throws \SAML2\Exception\MissingElementException if one of the mandatory child-elements is missing
+     * @throws \SAML2\Exception\TooManyElementsException if too many child-elements of a type are specified
      */
     public static function fromXML(DOMElement $xml): object
     {
-        Assert::same($xml->localName, 'KeyDescriptor');
-        Assert::same($xml->namespaceURI, KeyDescriptor::NS);
+        Assert::same($xml->localName, 'KeyDescriptor', InvalidDOMElementException::class);
+        Assert::same($xml->namespaceURI, KeyDescriptor::NS, InvalidDOMElementException::class);
 
         $keyInfoElements = KeyInfo::getChildrenOfClass($xml);
-        Assert::minCount($keyInfoElements, 1, 'No ds:KeyInfo in the KeyDescriptor.');
-        Assert::maxCount($keyInfoElements, 1, 'More than one ds:KeyInfo in the KeyDescriptor.');
+        Assert::minCount($keyInfoElements, 1, 'No ds:KeyInfo in the KeyDescriptor.', MissingElementException::class);
+        Assert::maxCount($keyInfoElements, 1, 'More than one ds:KeyInfo in the KeyDescriptor.', TooManyElementsException::class);
 
         return new self(
             $keyInfoElements[0],

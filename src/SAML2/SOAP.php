@@ -5,7 +5,11 @@ declare(strict_types=1);
 namespace SAML2;
 
 use DOMDocument;
+use Exception;
 use SAML2\XML\ecp\Response as ECPResponse;
+use SAML2\XML\samlp\AbstractMessage;
+use SAML2\XML\samlp\MessageFactory;
+use SAML2\XML\samlp\Response;
 
 /**
  * Class which implements the SOAP binding.
@@ -15,11 +19,11 @@ use SAML2\XML\ecp\Response as ECPResponse;
 class SOAP extends Binding
 {
     /**
-     * @param Message $message
+     * @param \SAML2\XML\samlp\AbstractMessage $message
      * @throws \Exception
      * @return string|false The XML or false on error
      */
-    public function getOutputToSend(Message $message)
+    public function getOutputToSend(AbstractMessage $message)
     {
         $envelope = <<<SOAP
 <?xml version="1.0" encoding="utf-8"?>
@@ -42,7 +46,7 @@ SOAP;
 
             $destination = $this->destination ?: $message->getDestination();
             if ($destination === null) {
-                throw new \Exception('No destination available for SOAP message.');
+                throw new Exception('No destination available for SOAP message.');
             }
             $response = new ECPResponse($destination);
 
@@ -60,7 +64,7 @@ SOAP;
         /** @var \DOMElement $body */
         $body = $doc->getElementsByTagNameNs(Constants::NS_SOAP, 'Body')->item(0);
 
-        $body->appendChild($doc->importNode($message->toSignedXML(), true));
+        $body->appendChild($doc->importNode($message->toXML(), true));
 
         return $doc->saveXML();
     }
@@ -71,10 +75,10 @@ SOAP;
      *
      * Note: This function never returns.
      *
-     * @param \SAML2\Message $message The message we should send.
+     * @param \SAML2\XML\samlp\AbstractMessage $message The message we should send.
      * @return void
      */
-    public function send(Message $message): void
+    public function send(AbstractMessage $message): void
     {
         header('Content-Type: text/xml', true);
 
@@ -85,7 +89,7 @@ SOAP;
         }
 
         // DOMDocument::saveXML() returned false. Something is seriously wrong here. Not much we can do.
-        throw new \Exception('Error while generating XML for SAML message.');
+        throw new Exception('Error while generating XML for SAML message.');
     }
 
 
@@ -93,14 +97,14 @@ SOAP;
      * Receive a SAML 2 message sent using the HTTP-POST binding.
      *
      * @throws \Exception If unable to receive the message
-     * @return \SAML2\Message The received message.
+     * @return \SAML2\XML\samlp\AbstractMessage The received message.
      */
-    public function receive(): Message
+    public function receive(): AbstractMessage
     {
         $postText = $this->getInputStream();
 
         if ($postText === false) {
-            throw new \Exception('Invalid message received to AssertionConsumerService endpoint.');
+            throw new Exception('Invalid message received to AssertionConsumerService endpoint.');
         }
 
         $document = DOMDocumentFactory::fromString($postText);
@@ -110,7 +114,7 @@ SOAP;
         /** @var \DOMElement[] $results */
         $results = Utils::xpQuery($xml, '/soap-env:Envelope/soap-env:Body/*[1]');
 
-        return Message::fromXML($results[0]);
+        return MessageFactory::fromXML($results[0]);
     }
 
     /**

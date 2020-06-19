@@ -6,15 +6,17 @@ namespace SAML2\Configuration;
 
 use SAML2\Exception\InvalidArgumentException;
 use SAML2\Exception\RuntimeException;
-use Webmozart\Assert\Assert;
+use SimpleSAML\Assert\Assert;
 
 /**
  * Configuration of a private key.
  */
 class PrivateKey extends ArrayAdapter
 {
+    /** @var string */
     public const NAME_NEW     = 'new';
 
+    /** @var string */
     public const NAME_DEFAULT = 'default';
 
     /**
@@ -37,6 +39,7 @@ class PrivateKey extends ArrayAdapter
      */
     private $isFile;
 
+
     /**
      * Constructor for PrivateKey.
      *
@@ -57,7 +60,7 @@ class PrivateKey extends ArrayAdapter
     /**
      * @return string
      *
-     * @throws \InvalidArgumentException if assertions are false
+     * @throws \SimpleSAML\Assert\AssertionFailedException if assertions are false
      */
     public function getFilePath(): string
     {
@@ -96,7 +99,7 @@ class PrivateKey extends ArrayAdapter
     /**
      * @return string
      *
-     * @throws \InvalidArgumentException if assertions are false
+     * @throws \SimpleSAML\Assert\AssertionFailedException if assertions are false
      */
     public function getContents(): string
     {

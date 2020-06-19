@@ -6,8 +6,9 @@ namespace SAML2;
 
 use DOMDocument;
 use InvalidArgumentException;
-use SAML2\Message;
-use SAML2\ArtifactResolve;
+use SAML2\XML\samlp\ArtifactResolve;
+use SAML2\XML\samlp\MessageFactory;
+use SimpleSAML\Assert\Assert;
 
 class SOAPTest extends \Mockery\Adapter\Phpunit\MockeryTestCase
 {
@@ -65,7 +66,7 @@ SOAP
      */
     public function testSendArtifactResponse(): void
     {
-        $doc = new \DOMDocument();
+        $doc = new DOMDocument();
         $doc->loadXML(<<<XML
 <samlp:ArtifactResponse
   xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol"
@@ -92,18 +93,13 @@ SOAP
 XML
         );
 
-        $message = Message::fromXML($doc->getElementsByTagName('ArtifactResponse')->item(0));
+        $message = MessageFactory::fromXML($doc->documentElement);
 
         $expected = <<<SOAP
 <?xml version="1.0" encoding="utf-8"?>
 <SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/">
     <SOAP-ENV:Header/>
-    <SOAP-ENV:Body><samlp:ArtifactResponse xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" ID="_FQvGknDfws2Z" Version="2.0" IssueInstant="2004-01-21T19:00:49Z" InResponseTo="_6c3a4f8b9c2d"><saml:Issuer>https://IdentityProvider.com/SAML</saml:Issuer><samlp:Status><samlp:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Success"/></samlp:Status><samlp:LogoutResponse ID="_b0730d21b628110d8b7e004005b13a2b" InResponseTo="_d2b7c388cec36fa7c39c28fd298644a8" IssueInstant="2004-01-21T19:05:49Z" Version="2.0">
-        <saml:Issuer>https://ServiceProvider.com/SAML</saml:Issuer>
-        <samlp:Status>
-            <samlp:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Success"/>
-        </samlp:Status>
-    </samlp:LogoutResponse></samlp:ArtifactResponse></SOAP-ENV:Body>
+    <SOAP-ENV:Body><samlp:ArtifactResponse xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" ID="_FQvGknDfws2Z" Version="2.0" IssueInstant="2004-01-21T19:00:49Z" InResponseTo="_6c3a4f8b9c2d"><saml:Issuer>https://IdentityProvider.com/SAML</saml:Issuer><samlp:Status><samlp:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Success"/></samlp:Status><samlp:LogoutResponse ID="_b0730d21b628110d8b7e004005b13a2b" Version="2.0" IssueInstant="2004-01-21T19:05:49Z" InResponseTo="_d2b7c388cec36fa7c39c28fd298644a8"><saml:Issuer>https://ServiceProvider.com/SAML</saml:Issuer><samlp:Status><samlp:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Success"/></samlp:Status></samlp:LogoutResponse></samlp:ArtifactResponse></SOAP-ENV:Body>
 </SOAP-ENV:Envelope>
 
 SOAP;
@@ -120,7 +116,7 @@ SOAP;
      */
     public function testSendResponse(): void
     {
-        $doc = new \DOMDocument();
+        $doc = new DOMDocument();
         $doc->loadXML(<<<XML
 <samlp:Response xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" ID="_8e8dc5f69a98cc4c1ff3427e5ce34606fd672f91e6" Version="2.0" IssueInstant="2014-07-17T01:01:48Z" Destination="http://sp.example.com/demo1/index.php?acs" InResponseTo="ONELOGIN_4fee3b046395c4e751011e97f8900b5273d56685">
   <saml:Issuer>http://idp.example.com/metadata.php</saml:Issuer>
@@ -162,7 +158,7 @@ SOAP;
 XML
         );
 
-        $message = Message::fromXML($doc->getElementsByTagName('Response')->item(0));
+        $message = MessageFactory::fromXML($doc->getElementsByTagName('Response')->item(0));
 
         $expected = <<<SOAP
 <?xml version="1.0" encoding="utf-8"?>

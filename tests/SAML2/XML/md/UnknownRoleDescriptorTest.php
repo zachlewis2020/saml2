@@ -9,7 +9,9 @@ use PHPUnit\Framework\TestCase;
 use RobRichards\XMLSecLibs\XMLSecurityDSig;
 use SAML2\Constants;
 use SAML2\DOMDocumentFactory;
+use SAML2\Exception\MissingAttributeException;
 use SAML2\XML\Chunk;
+use SimpleSAML\Assert\AssertionFailedException;
 
 /**
  * This is a test for the UnknownRoleDescriptor class.
@@ -102,9 +104,8 @@ XML
         $xml = $descriptor->getXML();
         $this->assertEquals('SomeRoleDescriptor', $xml->getLocalName());
 
-        $this->assertInstanceOf(Extensions::class, $descriptor->getExtensions());
         $extElement = $descriptor->getExtensions();
-        $this->assertNotNull($extElement);
+        $this->assertInstanceOf(Extensions::class, $extElement);
 
         $extensions = $extElement->getList();
         $this->assertCount(1, $extensions);
@@ -123,9 +124,9 @@ XML
     {
         $this->document->documentElement->removeAttribute('protocolSupportEnumeration');
 
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(MissingAttributeException::class);
         $this->expectExceptionMessage(
-            'Missing \'protocolSupportEnumeration\' attribute from md:UnknownRoleDescriptor.'
+            'Missing \'protocolSupportEnumeration\' attribute on md:UnknownRoleDescriptor.'
         );
 
         UnknownRoleDescriptor::fromXML($this->document->documentElement);
@@ -139,7 +140,7 @@ XML
     {
         $this->document->documentElement->setAttribute('protocolSupportEnumeration', '');
 
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(AssertionFailedException::class);
         $this->expectExceptionMessage('Cannot specify an empty string as a supported protocol.');
 
         UnknownRoleDescriptor::fromXML($this->document->documentElement);

@@ -8,9 +8,12 @@ use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use SAML2\Constants;
 use SAML2\DOMDocumentFactory;
+use SAML2\Exception\MissingAttributeException;
+use SAML2\Exception\TooManyElementsException;
 use SAML2\SignedElementTestTrait;
 use SAML2\Utils;
 use SAML2\XML\mdrpi\PublicationInfo;
+use SimpleSAML\Assert\AssertionFailedException;
 
 /**
  * Class \SAML2\XML\md\EntityDescriptorTest
@@ -298,7 +301,7 @@ XML
      */
     public function testMarshallingWithEmptyEntityID(): void
     {
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(AssertionFailedException::class);
         $this->expectExceptionMessage('The entityID attribute cannot be empty.');
         new EntityDescriptor('', null, null, null, null, [], new AffiliationDescriptor('asdf', ['test']));
     }
@@ -309,7 +312,7 @@ XML
      */
     public function testMarshallingWithLongEntityID(): void
     {
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(AssertionFailedException::class);
         $this->expectExceptionMessage('The entityID attribute cannot be longer than 1024 characters.');
         new EntityDescriptor(
             str_repeat('x', 1025),
@@ -395,8 +398,8 @@ XML
 </EntityDescriptor>
 XML
         );
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Missing \'entityID\' attribute from md:EntityDescriptor.');
+        $this->expectException(MissingAttributeException::class);
+        $this->expectExceptionMessage('Missing \'entityID\' attribute on md:EntityDescriptor.');
         EntityDescriptor::fromXML($document->documentElement);
     }
 
@@ -472,7 +475,7 @@ XML
 </EntityDescriptor>
 XML
         );
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(TooManyElementsException::class);
         $this->expectExceptionMessage('More than one AffiliationDescriptor in the entity.');
         EntityDescriptor::fromXML($document->documentElement);
     }
@@ -501,7 +504,7 @@ XML
 </EntityDescriptor>
 XML
         );
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(TooManyElementsException::class);
         $this->expectExceptionMessage('More than one Organization in the entity.');
         EntityDescriptor::fromXML($document->documentElement);
     }

@@ -8,7 +8,7 @@ use SAML2\Assertion\Validation\Result;
 use SAML2\Assertion\Validation\SubjectConfirmationConstraintValidator;
 use SAML2\Configuration\Destination;
 use SAML2\XML\saml\SubjectConfirmation;
-use Webmozart\Assert\Assert;
+use SimpleSAML\Assert\Assert;
 
 class SubjectConfirmationRecipientMatches implements
     SubjectConfirmationConstraintValidator
@@ -21,7 +21,7 @@ class SubjectConfirmationRecipientMatches implements
 
     /**
      * Constructor for SubjectConfirmationRecipientMatches
-     * @param Destination $destination
+     * @param \SAML2\Configuration\Destination $destination
      */
     public function __construct(Destination $destination)
     {
@@ -30,11 +30,11 @@ class SubjectConfirmationRecipientMatches implements
 
 
     /**
-     * @param SubjectConfirmation $subjectConfirmation
-     * @param Result $result
+     * @param \SAML2\XML\saml\SubjectConfirmation $subjectConfirmation
+     * @param \SAML2\Assertion\Validation\Result $result
      * @return void
      *
-     * @throws \InvalidArgumentException if assertions are false
+     * @throws \SimpleSAML\Assert\AssertionFailedException if assertions are false
      */
     public function validate(SubjectConfirmation $subjectConfirmation, Result $result): void
     {

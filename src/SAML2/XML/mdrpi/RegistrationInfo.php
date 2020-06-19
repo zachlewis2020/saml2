@@ -5,8 +5,9 @@ declare(strict_types=1);
 namespace SAML2\XML\mdrpi;
 
 use DOMElement;
+use SAML2\Exception\InvalidDOMElementException;
 use SAML2\Utils;
-use Webmozart\Assert\Assert;
+use SimpleSAML\Assert\Assert;
 
 /**
  * Class for handling the mdrpi:RegistrationInfo element.
@@ -123,6 +124,8 @@ final class RegistrationInfo extends AbstractMdrpiElement
      */
     private function setRegistrationPolicy(array $registrationPolicy): void
     {
+        Assert::allStringNotEmpty($registrationPolicy);
+
         $this->RegistrationPolicy = $registrationPolicy;
     }
 
@@ -132,21 +135,20 @@ final class RegistrationInfo extends AbstractMdrpiElement
      *
      * @param \DOMElement $xml The XML element we should load
      * @return self
-     * @throws \InvalidArgumentException if the qualified name of the supplied element is wrong
+     *
+     * @throws \SAML2\Exception\InvalidDOMElementException if the qualified name of the supplied element is wrong
+     * @throws \SAML2\Exception\MissingAttributeException if the supplied element is missing one of the mandatory attributes
      */
     public static function fromXML(DOMElement $xml): object
     {
-        Assert::same($xml->localName, 'RegistrationInfo');
-        Assert::same($xml->namespaceURI, RegistrationInfo::NS);
-        Assert::true(
-            $xml->hasAttribute('registrationAuthority'),
-            'Missing required attribute "registrationAuthority" in mdrpi:RegistrationInfo element.'
-        );
+        Assert::same($xml->localName, 'RegistrationInfo', InvalidDOMElementException::class);
+        Assert::same($xml->namespaceURI, RegistrationInfo::NS, InvalidDOMElementException::class);
 
-        $registrationAuthority = $xml->getAttribute('registrationAuthority');
-        $registrationInstant = $xml->hasAttribute('registrationInstant')
-            ? Utils::xsDateTimeToTimestamp($xml->getAttribute('registrationInstant'))
-            : null;
+        $registrationAuthority = self::getAttribute($xml, 'registrationAuthority');
+        $registrationInstant = self::getAttribute($xml, 'registrationInstant', null);
+        if ($registrationInstant !== null) {
+            $registrationInstant = Utils::xsDateTimeToTimestamp($registrationInstant);
+        }
         $RegistrationPolicy = Utils::extractLocalizedStrings($xml, RegistrationInfo::NS, 'RegistrationPolicy');
 
         return new self($registrationAuthority, $registrationInstant, $RegistrationPolicy);

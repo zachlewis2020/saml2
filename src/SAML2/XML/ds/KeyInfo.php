@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace SAML2\XML\ds;
 
 use DOMElement;
+use SAML2\Exception\InvalidDOMElementException;
 use SAML2\XML\Chunk;
-use Webmozart\Assert\Assert;
+use SAML2\XML\xenc\EncryptedKey;
+use SimpleSAML\Assert\Assert;
 
 /**
  * Class representing a ds:KeyInfo element.
@@ -28,7 +30,7 @@ final class KeyInfo extends AbstractDsElement
      * Array with various elements describing this key.
      * Unknown elements will be represented by \SAML2\XML\Chunk.
      *
-     * @var (\SAML2\XML\Chunk|\SAML2\XML\ds\KeyName|\SAML2\XML\ds\X509Data)[]
+     * @var (\SAML2\XML\Chunk|\SAML2\XML\ds\KeyName|\SAML2\XML\ds\X509Data|\SAML2\XML\xenc\EncryptedKey)[]
      */
     protected $info = [];
 
@@ -36,7 +38,7 @@ final class KeyInfo extends AbstractDsElement
     /**
      * Initialize a KeyInfo element.
      *
-     * @param (\SAML2\XML\Chunk|\SAML2\XML\ds\KeyName|\SAML2\XML\ds\X509Data)[] $info
+     * @param (\SAML2\XML\Chunk|\SAML2\XML\ds\KeyName|\SAML2\XML\ds\X509Data|\SAML2\XML\xenc\EncryptedKey)[] $info
      * @param string|null $Id
      */
     public function __construct(array $info, $Id = null)
@@ -72,7 +74,7 @@ final class KeyInfo extends AbstractDsElement
     /**
      * Collect the value of the info-property
      *
-     * @return (\SAML2\XML\Chunk|\SAML2\XML\ds\KeyName|\SAML2\XML\ds\X509Data)[]
+     * @return (\SAML2\XML\Chunk|\SAML2\XML\ds\KeyName|\SAML2\XML\ds\X509Data|\SAML2\XML\xenc\EncryptedKey)[]
      */
     public function getInfo(): array
     {
@@ -83,17 +85,18 @@ final class KeyInfo extends AbstractDsElement
     /**
      * Set the value of the info-property
      *
-     * @param (\SAML2\XML\Chunk|\SAML2\XML\ds\KeyName|\SAML2\XML\ds\X509Data)[] $info
+     * @param (\SAML2\XML\Chunk|\SAML2\XML\ds\KeyName|\SAML2\XML\ds\X509Data|\SAML2\XML\xenc\EncryptedKey)[] $info
      * @return void
-     * @throws \InvalidArgumentException if $info contains anything other than KeyName, X509Data or Chunk
+     * @throws \SimpleSAML\Assert\AssertionFailedException  if $info contains
+     *   anything other than KeyName, X509Data, EncryptedKey or Chunk
      */
     private function setInfo(array $info): void
     {
         Assert::notEmpty($info, 'ds:KeyInfo cannot be empty');
         Assert::allIsInstanceOfAny(
             $info,
-            [Chunk::class, KeyName::class, X509Data::class],
-            'KeyInfo can only contain instances of KeyName, X509Data or Chunk.'
+            [Chunk::class, KeyName::class, X509Data::class, EncryptedKey::class],
+            'KeyInfo can only contain instances of KeyName, X509Data, EncryptedKey or Chunk.'
         );
         $this->info = $info;
     }
@@ -104,18 +107,19 @@ final class KeyInfo extends AbstractDsElement
      *
      * @param \DOMElement $xml The XML element we should load
      * @return self
-     * @throws \InvalidArgumentException if the qualified name of the supplied element is wrong
+     *
+     * @throws \SAML2\Exception\InvalidDOMElementException if the qualified name of the supplied element is wrong
      */
     public static function fromXML(DOMElement $xml): object
     {
-        Assert::same($xml->localName, 'KeyInfo');
-        Assert::same($xml->namespaceURI, KeyInfo::NS);
+        Assert::same($xml->localName, 'KeyInfo', InvalidDOMElementException::class);
+        Assert::same($xml->namespaceURI, KeyInfo::NS, InvalidDOMElementException::class);
 
-        $Id = $xml->hasAttribute('Id') ? $xml->getAttribute('Id') : null;
+        $Id = self::getAttribute($xml, 'Id', null);
         $info = [];
 
         foreach ($xml->childNodes as $n) {
-            if (!($n instanceof \DOMElement)) {
+            if (!($n instanceof DOMElement)) {
                 continue;
             } elseif ($n->namespaceURI !== self::NS) {
                 $info[] = new Chunk($n);
@@ -128,6 +132,9 @@ final class KeyInfo extends AbstractDsElement
                     break;
                 case 'X509Data':
                     $info[] = X509Data::fromXML($n);
+                    break;
+                case 'EncryptedKey':
+                    $info[] = EncryptedKey::fromXML($n);
                     break;
                 default:
                     $info[] = new Chunk($n);

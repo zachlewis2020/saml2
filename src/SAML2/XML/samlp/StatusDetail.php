@@ -5,11 +5,9 @@ declare(strict_types=1);
 namespace SAML2\XML\samlp;
 
 use DOMElement;
-use DOMNodeList;
-use SAML2\Constants;
-use SAML2\DOMDocumentFactory;
+use SAML2\Exception\InvalidDOMElementException;
 use SAML2\XML\Chunk;
-use Webmozart\Assert\Assert;
+use SimpleSAML\Assert\Assert;
 
 /**
  * SAML StatusDetail data type.
@@ -50,11 +48,12 @@ final class StatusDetail extends AbstractSamlpElement
      *
      * @param \SAML2\XML\Chunk[] $details
      * @return void
-     * @throws \InvalidArgumentException if the supplied array contains anything other than Chunk objects
+     * @throws \SimpleSAML\Assert\AssertionFailedException if the supplied array contains anything other than Chunk objects
      */
     private function setDetails(array $details): void
     {
         Assert::allIsInstanceOf($details, Chunk::class);
+
         $this->details = $details;
     }
 
@@ -75,12 +74,13 @@ final class StatusDetail extends AbstractSamlpElement
      *
      * @param \DOMElement $xml The XML element we should load
      * @return \SAML2\XML\samlp\StatusDetail
-     * @throws \InvalidArgumentException if the qualified name of the supplied element is wrong
+     *
+     * @throws \SAML2\Exception\InvalidDOMElementException if the qualified name of the supplied element is wrong
      */
     public static function fromXML(DOMElement $xml): object
     {
-        Assert::same($xml->localName, 'StatusDetail');
-        Assert::same($xml->namespaceURI, StatusDetail::NS);
+        Assert::same($xml->localName, 'StatusDetail', InvalidDOMElementException::class);
+        Assert::same($xml->namespaceURI, StatusDetail::NS, InvalidDOMElementException::class);
 
         $details = [];
         foreach ($xml->childNodes as $detail) {
@@ -103,6 +103,7 @@ final class StatusDetail extends AbstractSamlpElement
      */
     public function toXML(DOMElement $parent = null): DOMElement
     {
+        /** @psalm-var \DOMDocument $e->ownerDocument */
         $e = $this->instantiateParentElement($parent);
 
         foreach ($this->details as $detail) {

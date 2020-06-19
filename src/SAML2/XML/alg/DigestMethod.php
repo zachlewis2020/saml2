@@ -6,7 +6,8 @@ namespace SAML2\XML\alg;
 
 use DOMElement;
 use SAML2\DOMDocumentFactory;
-use Webmozart\Assert\Assert;
+use SAML2\Exception\InvalidDOMElementException;
+use SimpleSAML\Assert\Assert;
 
 /**
  * Class for handling the alg:DigestMethod element.
@@ -40,8 +41,6 @@ final class DigestMethod extends AbstractAlgElement
      * Collect the value of the algorithm-property
      *
      * @return string
-     *
-     * @throws \InvalidArgumentException if assertions are false
      */
     public function getAlgorithm(): string
     {
@@ -66,19 +65,18 @@ final class DigestMethod extends AbstractAlgElement
      *
      * @param \DOMElement $xml The XML element we should load
      * @return self
-     * @throws \InvalidArgumentException if the qualified name of the supplied element is wrong
-     * @throws \InvalidArgumentException if the supplied element is missing the Algorithm attribute
+     *
+     * @throws \SAML2\Exception\InvalidDOMElementException if the qualified name of the supplied element is wrong
+     * @throws \SAML2\Exception\MissingAttributeException if the mandatory Algorithm-attribute is missing
      */
     public static function fromXML(DOMElement $xml): object
     {
-        Assert::same($xml->localName, 'DigestMethod');
-        Assert::same($xml->namespaceURI, DigestMethod::NS);
-        Assert::true(
-            $xml->hasAttribute('Algorithm'),
-            'Missing required attribute "Algorithm" in alg:DigestMethod element.'
-        );
+        Assert::same($xml->localName, 'DigestMethod', InvalidDOMElementException::class);
+        Assert::same($xml->namespaceURI, DigestMethod::NS, InvalidDOMElementException::class);
 
-        return new self($xml->getAttribute('Algorithm'));
+        $Algorithm = self::getAttribute($xml, 'Algorithm');
+
+        return new self($Algorithm);
     }
 
 

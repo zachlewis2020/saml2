@@ -4,15 +4,19 @@ declare(strict_types=1);
 
 namespace SAML2\Response;
 
+use DOMDocument;
+use Mockery;
+use SAML2\Assertion\Processor as AssertionProcessor;
 use SAML2\CertificatesMock;
-use SAML2\Assertion;
 use SAML2\Configuration\Destination;
 use SAML2\Configuration\IdentityProvider;
 use SAML2\Configuration\ServiceProvider;
-use SAML2\Response;
+use SAML2\Response\Exception\UnsignedResponseException;
+use SAML2\Response\Processor as ResponseProcessor;
 use SAML2\Utilities\ArrayCollection;
 use SAML2\Utilities\Certificate;
-use SAML2\Response\Exception\UnsignedResponseException;
+use SAML2\XML\saml\Assertion;
+use SAML2\XML\samlp\Response;
 
 /**
  * Test that ensures that either the response or the assertion(s) or both must be signed.
@@ -52,8 +56,8 @@ class SignatureValidationTest extends \Mockery\Adapter\Phpunit\MockeryTestCase
      */
     public function setUp(): void
     {
-        $this->assertionProcessorBuilder = \Mockery::mock('alias:SAML2\Assertion\ProcessorBuilder');
-        $this->assertionProcessor = \Mockery::mock(Assertion\Processor::class);
+        $this->assertionProcessorBuilder = Mockery::mock('alias:SAML2\Assertion\ProcessorBuilder');
+        $this->assertionProcessor = Mockery::mock(AssertionProcessor::class);
         $this->assertionProcessorBuilder
             ->shouldReceive('build')
             ->once()
@@ -82,7 +86,7 @@ class SignatureValidationTest extends \Mockery\Adapter\Phpunit\MockeryTestCase
 
         $this->assertionProcessor->shouldReceive('processAssertions')->once();
 
-        $processor = new Processor(new \Psr\Log\NullLogger());
+        $processor = new ResponseProcessor(new \Psr\Log\NullLogger());
 
         $processor->process(
             $this->serviceProviderConfiguration,
@@ -98,7 +102,7 @@ class SignatureValidationTest extends \Mockery\Adapter\Phpunit\MockeryTestCase
      * @preserveGlobalState disabled
      * @return void
      */
-    public function testThatAnSignedResponseWithAnUnsignedAssertionCanBeProcessed(): void
+    public function testThatASignedResponseWithAnUnsignedAssertionCanBeProcessed(): void
     {
         $this->assertionProcessor->shouldReceive('decryptAssertions')
             ->once()
@@ -106,7 +110,7 @@ class SignatureValidationTest extends \Mockery\Adapter\Phpunit\MockeryTestCase
 
         $this->assertionProcessor->shouldReceive('processAssertions')->once();
 
-        $processor = new Response\Processor(new \Psr\Log\NullLogger());
+        $processor = new ResponseProcessor(new \Psr\Log\NullLogger());
 
         $processor->process(
             $this->serviceProviderConfiguration,
@@ -130,7 +134,7 @@ class SignatureValidationTest extends \Mockery\Adapter\Phpunit\MockeryTestCase
 
         $this->assertionProcessor->shouldReceive('processAssertions')->once();
 
-        $processor = new Response\Processor(new \Psr\Log\NullLogger());
+        $processor = new ResponseProcessor(new \Psr\Log\NullLogger());
 
         $processor->process(
             $this->serviceProviderConfiguration,
@@ -150,7 +154,7 @@ class SignatureValidationTest extends \Mockery\Adapter\Phpunit\MockeryTestCase
     {
         $this->expectException(UnsignedResponseException::class);
 
-        $assertion = \Mockery::mock('SAML2\Assertion');
+        $assertion = Mockery::mock(Assertion::class);
 
         // The processAssertions is called to decrypt possible encrypted assertions,
         // after which it should fail with an exception due to having no signature
@@ -160,7 +164,7 @@ class SignatureValidationTest extends \Mockery\Adapter\Phpunit\MockeryTestCase
                 $assertion
             ]));
 
-        $processor = new Processor(new \Psr\Log\NullLogger());
+        $processor = new ResponseProcessor(new \Psr\Log\NullLogger());
 
         $processor->process(
             $this->serviceProviderConfiguration,
@@ -172,69 +176,54 @@ class SignatureValidationTest extends \Mockery\Adapter\Phpunit\MockeryTestCase
 
 
     /**
-     * @return \SAML2\Response
+     * @return \SAML2\XML\samlp\Response
      */
     private function getSignedResponseWithUnsignedAssertion(): Response
     {
-        $doc = new \DOMDocument();
+        $doc = new DOMDocument();
         $doc->load(__DIR__ . '/response.xml');
-        $response = new Response($doc->firstChild);
-        $response->setSignatureKey(CertificatesMock::getPrivateKey());
+        $response = Response::fromXML($doc->documentElement);
+        $response->setSigningKey(CertificatesMock::getPrivateKey());
         $response->setCertificates([CertificatesMock::PUBLIC_KEY_PEM]);
 
         // convert to signed response
-        return new Response($response->toSignedXML());
+        return Response::fromXML($response->toXML());
     }
 
 
     /**
-     * @return \SAML2\Response
+     * @return \SAML2\XML\samlp\Response
      */
     private function getUnsignedResponseWithSignedAssertion(): Response
     {
-        $doc = new \DOMDocument();
-        $doc->load(__DIR__ . '/response.xml');
-        $response = new Response($doc->firstChild);
-
-        $assertions = $response->getAssertions();
-        $assertion = $assertions[0];
-        $assertion->setSignatureKey(CertificatesMock::getPrivateKey());
-        $assertion->setCertificates([CertificatesMock::PUBLIC_KEY_PEM]);
-        $signedAssertion = new Assertion($assertion->toXML());
-
-        $response->setAssertions([$signedAssertion]);
-
-        return $response;
+        $doc = new DOMDocument();
+        $doc->load(__DIR__ . '/unsignedResponseWithSignedAssertion.xml');
+        return Response::fromXML($doc->documentElement);
     }
 
 
     /**
-     * @return \SAML2\Response
+     * @return \SAML2\XML\samlp\Response
      */
     private function getSignedResponseWithSignedAssertion(): Response
     {
-        $doc = new \DOMDocument();
-        $doc->load(__DIR__ . '/response.xml');
-        $response = new Response($doc->firstChild);
-        $response->setSignatureKey(CertificatesMock::getPrivateKey());
+        $doc = new DOMDocument();
+        $doc->load(__DIR__ . '/unsignedResponseWithSignedAssertion.xml');
+        $response = Response::fromXML($doc->documentElement);
+        $response->setSigningKey(CertificatesMock::getPrivateKey());
         $response->setCertificates([CertificatesMock::PUBLIC_KEY_PEM]);
 
-        $assertions = $response->getAssertions();
-        $assertion  = $assertions[0];
-        $assertion->setSignatureKey(CertificatesMock::getPrivateKey());
-        $assertion->setCertificates([CertificatesMock::PUBLIC_KEY_PEM]);
-
-        return new Response($response->toSignedXML());
+        return Response::fromXML($response->toXML());
     }
 
 
     /**
-     * @return \SAML2\Response
+     * @return \SAML2\XML\samlp\Response
      */
     private function getUnsignedResponseWithUnsignedAssertion(): Response
     {
-        $doc = new \DOMDocument();
+        $doc = new DOMDocument();
         $doc->load(__DIR__ . '/response.xml');
-        return new Response($doc->firstChild);
+        return Response::fromXML($doc->documentElement);
     }
 }

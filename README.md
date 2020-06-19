@@ -1,6 +1,8 @@
 SimpleSAMLphp SAML2 library
 ===========================
-[![Build Status](https://travis-ci.org/simplesamlphp/saml2.png?branch=feature/fix-build)](https://travis-ci.org/simplesamlphp/saml2) [![Coverage Status](https://codecov.io/gh/simplesamlphp/saml2/branch/master/graph/badge.svg)](https://codecov.io/gh/simplesamlphp/saml2)
+![CI](https://github.com/simplesamlphp/saml2/workflows/CI/badge.svg?branch=master)
+[![Build Status](https://travis-ci.org/simplesamlphp/saml2.png?branch=feature/fix-build)](https://travis-ci.org/simplesamlphp/saml2)
+[![Coverage Status](https://codecov.io/gh/simplesamlphp/saml2/branch/master/graph/badge.svg)](https://codecov.io/gh/simplesamlphp/saml2)
 
 A PHP library for SAML2 related functionality. Extracted from [SimpleSAMLphp](https://www.simplesamlphp.org),
 used by [OpenConext](https://www.openconext.org).
@@ -52,11 +54,16 @@ Example:
     require 'container.php';
     SAML2\Compat\ContainerSingleton::setContainer($container);
 
+    // Create Issuer
+    $issuer = new SAML2\XML\saml\Issuer('https://sp.example.edu');
+
     // Set up an AuthnRequest
-    $request = new SAML2\AuthnRequest();
-    $request->setId($container->generateId());
-    $request->setIssuer('https://sp.example.edu');
-    $request->setDestination('https://idp.example.edu');
+    $request = new SAML2\XML\samlp\AuthnRequest(
+        $issuer,
+        $container->generateId(),
+        null,
+        'https://idp.example.edu'
+    );
 
     // Send it off using the HTTP-Redirect binding
     $binding = new SAML2\HTTPRedirect();

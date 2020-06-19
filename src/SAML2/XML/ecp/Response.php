@@ -7,7 +7,9 @@ namespace SAML2\XML\ecp;
 use DOMElement;
 use InvalidArgumentException;
 use SAML2\Constants;
-use Webmozart\Assert\Assert;
+use SAML2\Exception\InvalidDOMElementException;
+use SAML2\Exception\MissingAttributeException;
+use SimpleSAML\Assert\Assert;
 
 /**
  * Class representing the ECP Response element.
@@ -69,13 +71,14 @@ final class Response extends AbstractEcpElement
      *
      * @param \DOMElement $xml The XML element we should load
      * @return self
-     * @throws \InvalidArgumentException if the qualified name of the supplied element is wrong
-     * @throws \InvalidArgumentException if the supplied element lacks the required attributes
+     *
+     * @throws \SAML2\Exception\InvalidDOMElementException if the qualified name of the supplied element is wrong
+     * @throws \SAML2\Exception\MissingAttributeException if the supplied element is missing any of the mandatory attributes
      */
     public static function fromXML(DOMElement $xml): object
     {
-        Assert::same($xml->localName, 'Response');
-        Assert::same($xml->namespaceURI, Response::NS);
+        Assert::same($xml->localName, 'Response', InvalidDOMElementException::class);
+        Assert::same($xml->namespaceURI, Response::NS, InvalidDOMElementException::class);
 
         // Assert required attributes
         Assert::true(
@@ -88,7 +91,8 @@ final class Response extends AbstractEcpElement
         );
         Assert::true(
             $xml->hasAttribute('AssertionConsumerServiceURL'),
-            'Missing AssertionConsumerServiceURL attribute in <ecp:Response>.'
+            'Missing AssertionConsumerServiceURL attribute in <ecp:Response>.',
+            MissingAttributeException::class
         );
 
         $mustUnderstand = $xml->getAttributeNS(Constants::NS_SOAP, 'mustUnderstand');
@@ -101,7 +105,7 @@ final class Response extends AbstractEcpElement
             'Invalid value of SOAP-ENV:actor attribute in <ecp:Response>.'
         );
 
-        return new self($xml->getAttribute('AssertionConsumerServiceURL'));
+        return new self(self::getAttribute($xml, 'AssertionConsumerServiceURL'));
     }
 
 

@@ -6,9 +6,8 @@ namespace SAML2\XML\samlp;
 
 use DOMElement;
 use SAML2\Constants;
-use SAML2\DOMDocumentFactory;
-use SAML2\Utils;
-use Webmozart\Assert\Assert;
+use SAML2\Exception\InvalidDOMElementException;
+use SimpleSAML\Assert\Assert;
 
 /**
  * SAML StatusCode data type.
@@ -54,11 +53,11 @@ final class StatusCode extends AbstractSamlpElement
      *
      * @param string $Value
      * @return void
-     * @throws \InvalidArgumentException if the supplied $Value is empty
+     * @throws \SimpleSAML\Assert\AssertionFailedException if the supplied $Value is empty
      */
     private function setValue(string $Value): void
     {
-        Assert::stringNotEmpty($Value);
+        Assert::notEmpty($Value);
         $this->Value = $Value;
     }
 
@@ -79,11 +78,12 @@ final class StatusCode extends AbstractSamlpElement
      *
      * @param \SAML2\XML\samlp\StatusCode[] $subCodes
      * @return void
-     * @throws \InvalidArgumentException if the supplied array contains anything other than StatusCode objects
+     * @throws \SimpleSAML\Assert\AssertionFailedException if the supplied array contains anything other than StatusCode objects
      */
     private function setSubCodes(array $subCodes): void
     {
         Assert::allIsInstanceOf($subCodes, StatusCode::class);
+
         $this->subCodes = $subCodes;
     }
 
@@ -93,17 +93,16 @@ final class StatusCode extends AbstractSamlpElement
      *
      * @param \DOMElement $xml The XML element we should load
      * @return \SAML2\XML\samlp\StatusCode
-     * @throws \InvalidArgumentException if the qualified name of the supplied element is wrong
+     *
+     * @throws \SAML2\Exception\InvalidDOMElementException if the qualified name of the supplied element is wrong
+     * @throws \SAML2\Exception\MissingAttributeException if the supplied element is missing one of the mandatory attributes
      */
     public static function fromXML(DOMElement $xml): object
     {
-        Assert::same($xml->localName, 'StatusCode');
-        Assert::same($xml->namespaceURI, StatusCode::NS);
+        Assert::same($xml->localName, 'StatusCode', InvalidDOMElementException::class);
+        Assert::same($xml->namespaceURI, StatusCode::NS, InvalidDOMElementException::class);
 
-        $Value = $xml->hasAttribute('Value') ? $xml->getAttribute('Value') : null;
-
-        Assert::notNull($Value, 'Missing mandatory Value-attribute for StatusCode');
-
+        $Value = self::getAttribute($xml, 'Value');
         $subCodes = StatusCode::getChildrenOfClass($xml);
 
         return new self(
@@ -116,7 +115,7 @@ final class StatusCode extends AbstractSamlpElement
     /**
      * Convert this StatusCode to XML.
      *
-     * @param \DOMElement|null $parent The element we should append this NameIDPolicy to.
+     * @param \DOMElement|null $parent The element we should append this StatusCode to.
      * @return \DOMElement
      */
     public function toXML(DOMElement $parent = null): DOMElement

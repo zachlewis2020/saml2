@@ -5,11 +5,12 @@ declare(strict_types=1);
 namespace SAML2;
 
 use Exception;
-use SAML2\AttributeQuery;
 use SAML2\Constants;
 use SAML2\DOMDocumentFactory;
 use SAML2\XML\ds\X509Data;
 use SAML2\XML\saml\NameID;
+use SAML2\XML\saml\Subject;
+use SAML2\XML\samlp\AttributeQuery;
 use SAML2\Utils;
 
 /**
@@ -31,8 +32,7 @@ class UtilsTest extends \PHPUnit\Framework\TestCase
             null
         );
 
-        $aq = new AttributeQuery();
-        $aq->setNameID($nameId_before);
+        $aq = new AttributeQuery(new Subject($nameId_before));
 
         $xml = $aq->toXML();
 
@@ -238,69 +238,6 @@ class UtilsTest extends \PHPUnit\Framework\TestCase
             [false, '2015-01-01T00:00:00.0-04:00'],
             [false, '2015-01-01T00:00:00.123456Z789012345', 1420070400],
         ];
-    }
-
-
-    /**
-     * Test parseBoolean, XML allows both 1 and true as values.
-     * @return void
-     */
-    public function testParseBoolean(): void
-    {
-        // variations of true: "true", 1, and captalizations
-        $document = DOMDocumentFactory::fromString(
-            '<somenode anattribute="true"></somenode>'
-        );
-        $result = Utils::parseBoolean($document->firstChild, 'anattribute');
-        $this->assertTrue($result);
-
-        $document = DOMDocumentFactory::fromString(
-            '<somenode anattribute="1"></somenode>'
-        );
-        $result = Utils::parseBoolean($document->firstChild, 'anattribute');
-        $this->assertTrue($result);
-
-        $document = DOMDocumentFactory::fromString(
-            '<somenode anattribute="True"></somenode>'
-        );
-
-        // variations of false: "false", 0
-        $result = Utils::parseBoolean($document->firstChild, 'anattribute');
-        $this->assertTrue($result);
-
-        $document = DOMDocumentFactory::fromString(
-            '<somenode anattribute="false"></somenode>'
-        );
-        $result = Utils::parseBoolean($document->firstChild, 'anattribute');
-        $this->assertFalse($result);
-
-        $document = DOMDocumentFactory::fromString(
-            '<somenode anattribute="0"></somenode>'
-        );
-        $result = Utils::parseBoolean($document->firstChild, 'anattribute');
-        $this->assertFalse($result);
-
-        // Usage of the default if attribute not found
-        $document = DOMDocumentFactory::fromString(
-            '<somenode anattribute="true"></somenode>'
-        );
-        $result = Utils::parseBoolean($document->firstChild, 'otherattribute');
-        $this->assertNull($result);
-
-        $document = DOMDocumentFactory::fromString(
-            '<somenode anattribute="true"></somenode>'
-        );
-        $result = Utils::parseBoolean($document->firstChild, 'otherattribute', '404');
-        $this->assertEquals($result, '404');
-
-        // Exception on invalid value
-        $this->expectException(Exception::class);
-        $this->expectExceptionMessage("Invalid value of boolean attribute 'anattribute': 'yes'");
-
-        $document = DOMDocumentFactory::fromString(
-            '<somenode anattribute="yes"></somenode>'
-        );
-        $result = Utils::parseBoolean($document->firstChild, 'anattribute');
     }
 
 

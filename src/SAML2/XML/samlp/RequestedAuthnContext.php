@@ -5,12 +5,11 @@ declare(strict_types=1);
 namespace SAML2\XML\samlp;
 
 use DOMElement;
-use SAML2\Constants;
-use SAML2\DOMDocumentFactory;
+use SAML2\Exception\InvalidDOMElementException;
 use SAML2\Utils;
 use SAML2\XML\saml\AuthnContextClassRef;
 use SAML2\XML\saml\AuthnContextDeclRef;
-use Webmozart\Assert\Assert;
+use SimpleSAML\Assert\Assert;
 
 /**
  * Class representing SAML2 RequestedAuthnContext
@@ -30,16 +29,14 @@ final class RequestedAuthnContext extends AbstractSamlpElement
     /**
      * Initialize a RequestedAuthnContext.
      *
-     * @param \SAML2\XML\saml\AuthnContextClassRef[] $requestedAuthnContextClassRefs
-     * @param \SAML2\XML\saml\AuthnContextDeclRef[] $requestedAuthnContextDeclRefs
+     * @param (\SAML2\XML\saml\AuthnContextClassRef|\SAML2\XML\saml\AuthnContextDeclRef)[] $requestedAuthnContexts
      * @param string $Comparison
      */
     public function __construct(
-        array $requestedAuthnContextClassRefs = [],
-        array $requestedAuthnContextDeclRefs = [],
+        array $requestedAuthnContexts = [],
         string $Comparison = null
     ) {
-        $this->setRequestedAuthnContexts(array_merge($requestedAuthnContextClassRefs, $requestedAuthnContextDeclRefs));
+        $this->setRequestedAuthnContexts($requestedAuthnContexts);
         $this->setComparison($Comparison);
     }
 
@@ -58,9 +55,11 @@ final class RequestedAuthnContext extends AbstractSamlpElement
     /**
      * Set the value of the requestedAuthnContexts-property
      *
-     * @param (\SAML2\XML\saml\AuthnContextClassRef|\SAML2\XML\saml\AuthnContextDeclRef|mixed)[] $requestedAuthnContexts
+     * @param (\SAML2\XML\saml\AuthnContextClassRef|\SAML2\XML\saml\AuthnContextDeclRef)[] $requestedAuthnContexts
      * @return void
-     * @throws \InvalidArgumentException
+     *
+     * @throws \SAML2\Exception\InvalidDOMElementException if the qualified name of the supplied element is wrong
+     * @throws \SAML2\Exception\InvalidDOMElementException if the supplied element is missing the Algorithm attribute
      */
     private function setRequestedAuthnContexts(array $requestedAuthnContexts): void
     {
@@ -113,32 +112,21 @@ final class RequestedAuthnContext extends AbstractSamlpElement
      *
      * @param \DOMElement $xml The XML element we should load
      * @return \SAML2\XML\samlp\RequestedAuthnContext
-     * @throws \InvalidArgumentException if the qualified name of the supplied element is wrong
+     *
+     * @throws \SAML2\Exception\InvalidDOMElementException if the qualified name of the supplied element is wrong
      */
     public static function fromXML(DOMElement $xml): object
     {
-        Assert::same($xml->localName, 'RequestedAuthnContext');
-        Assert::same($xml->namespaceURI, RequestedAuthnContext::NS);
+        Assert::same($xml->localName, 'RequestedAuthnContext', InvalidDOMElementException::class);
+        Assert::same($xml->namespaceURI, RequestedAuthnContext::NS, InvalidDOMElementException::class);
 
-        /** @var \DOMElement[] $authnContextClassRef */
-        $authnContextClassRef = Utils::xpQuery($xml, './saml_assertion:AuthnContextClassRef');
-
-        /** @var \DOMElement[] $authnContextDeclRef */
-        $authnContextDeclRef = Utils::xpQuery($xml, './saml_assertion:AuthnContextDeclRef');
-
-        $requestedAuthnContextClassRefs = array_filter(
-            array_map([AuthnContextClassRef::class, 'fromXML'], $authnContextClassRef)
+        return new self(
+            array_merge(
+                AuthnContextClassRef::getChildrenOfClass($xml),
+                AuthnContextDeclRef::getChildrenOfClass($xml)
+            ),
+            self::getAttribute($xml, 'Comparison', null)
         );
-        $requestedAuthnContextDeclRefs = array_filter(
-            array_map([AuthnContextDeclRef::class, 'fromXML'], $authnContextDeclRef)
-        );
-
-        $Comparison = null;
-        if ($xml->hasAttribute('Comparison')) {
-            $Comparison = $xml->getAttribute('Comparison');
-        }
-
-        return new self($requestedAuthnContextClassRefs, $requestedAuthnContextDeclRefs, $Comparison);
     }
 
 
@@ -150,6 +138,7 @@ final class RequestedAuthnContext extends AbstractSamlpElement
      */
     public function toXML(DOMElement $parent = null): DOMElement
     {
+        /** @psalm-var \DOMDocument $e->ownerDocument */
         $e = $this->instantiateParentElement($parent);
 
         foreach ($this->requestedAuthnContexts as $context) {

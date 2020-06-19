@@ -7,7 +7,8 @@ namespace SAML2\XML\saml;
 use DOMElement;
 use SAML2\Constants;
 use SAML2\DOMDocumentFactory;
-use Webmozart\Assert\Assert;
+use SAML2\Exception\InvalidDOMElementException;
+use SimpleSAML\Assert\Assert;
 
 /**
  * Class representing SAML2 AuthnContextDeclRef
@@ -60,12 +61,13 @@ final class AuthnContextDeclRef extends AbstractSamlElement
      *
      * @param \DOMElement $xml The XML element we should load
      * @return \SAML2\XML\saml\AuthnContextDeclRef
-     * @throws \InvalidArgumentException if the qualified name of the supplied element is wrong
+     *
+     * @throws \SAML2\Exception\InvalidDOMElementException if the qualified name of the supplied element is wrong
      */
     public static function fromXML(DOMElement $xml): object
     {
-        Assert::same($xml->localName, 'AuthnContextDeclRef');
-        Assert::same($xml->namespaceURI, AuthnContextDeclRef::NS);
+        Assert::same($xml->localName, 'AuthnContextDeclRef', InvalidDOMElementException::class);
+        Assert::same($xml->namespaceURI, AuthnContextDeclRef::NS, InvalidDOMElementException::class);
 
         return new self($xml->textContent);
     }

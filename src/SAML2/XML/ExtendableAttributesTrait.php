@@ -6,8 +6,7 @@ namespace SAML2\XML;
 
 use DOMAttr;
 use DOMElement;
-use InvalidArgumentException;
-use Webmozart\Assert\Assert;
+use SimpleSAML\Assert\Assert;
 
 /**
  * Trait for elements that can have arbitrary namespaced attributes.
@@ -92,7 +91,7 @@ trait ExtendableAttributesTrait
      * @param string $namespaceURI  The namespace URI.
      * @param string $qualifiedName The local name.
      * @param string $value The attribute value.
-     * @throws \InvalidArgumentException if a non-qualified name is being passed
+     * @throws \SimpleSAML\Assert\AssertionFailedException if a non-qualified name is being passed
      */
     protected function setAttributeNS(string $namespaceURI, string $qualifiedName, string $value): void
     {
@@ -110,7 +109,7 @@ trait ExtendableAttributesTrait
 
     /**
      * @param \DOMAttr[] $attributes
-     * @throws \InvalidArgumentException if $attributes contains anything other than \DOMAttr objects
+     * @throws \SimpleSAML\Assert\AssertionFailedException if $attributes contains anything other than \DOMAttr objects
      */
     protected function setAttributesNS(array $attributes): void
     {
@@ -122,6 +121,7 @@ trait ExtendableAttributesTrait
 
         foreach ($attributes as $attribute) {
             Assert::stringNotEmpty($attribute->namespaceURI, 'Arbitrary XML attributes must be namespaced.');
+
             /** @psalm-suppress PossiblyNullArgument */
             $this->setAttributeNS($attribute->namespaceURI, $attribute->nodeName, $attribute->value);
         }

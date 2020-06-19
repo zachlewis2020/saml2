@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace SAML2\XML\md;
 
-use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use SAML2\Constants;
 use SAML2\DOMDocumentFactory;
+use SAML2\Exception\MissingAttributeException;
+use SAML2\Exception\MissingElementException;
 use SAML2\XML\saml\AttributeValue;
+use SimpleSAML\Assert\AssertionFailedException;
 
 /**
  * Tests for the AttributeConsumingService class.
@@ -33,7 +35,7 @@ final class AttributeConsumingServiceTest extends TestCase
   <md:ServiceName xml:lang="en">Academic Journals R US</md:ServiceName>
   <md:ServiceDescription xml:lang="en">Academic Journals R US and only us</md:ServiceDescription>
   <md:RequestedAttribute Name="urn:oid:1.3.6.1.4.1.5923.1.1.1.7" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri" FriendlyName="eduPersonEntitlement">
-    <saml:AttributeValue xmlns:saml="{$samlns}" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xs="http://www.w3.org/2001/XMLSchema" xsi:type="xs:string">https://ServiceProvider.com/entitlements/123456789</saml:AttributeValue>
+    <saml:AttributeValue xmlns:saml="{$samlns}">https://ServiceProvider.com/entitlements/123456789</saml:AttributeValue>
   </md:RequestedAttribute>
 </md:AttributeConsumingService>
 XML
@@ -115,7 +117,7 @@ XML
      */
     public function testMarshallingWithEmptyDescription(): void
     {
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(AssertionFailedException::class);
         $this->expectExceptionMessage('Service descriptions must be specified as ServiceDescription objects.');
 
         /** @psalm-suppress InvalidArgument */
@@ -151,7 +153,7 @@ XML
      */
     public function testMarshallingWithEmptyServiceName(): void
     {
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(MissingElementException::class);
         $this->expectExceptionMessage('Missing at least one ServiceName in AttributeConsumingService.');
         new AttributeConsumingService(
             2,
@@ -166,7 +168,7 @@ XML
      */
     public function testMarshallingWithEmptyRequestedAttributes(): void
     {
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(MissingElementException::class);
         $this->expectExceptionMessage('Missing at least one RequestedAttribute in AttributeConsumingService.');
         new AttributeConsumingService(
             2,
@@ -230,8 +232,8 @@ XML
     public function testUnmarshallingWithoutIndex(): void
     {
         $this->document->documentElement->removeAttribute('index');
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Missing \'index\' attribute from md:AttributeConsumingService.');
+        $this->expectException(MissingAttributeException::class);
+        $this->expectExceptionMessage('Missing \'index\' attribute on md:AttributeConsumingService.');
         AttributeConsumingService::fromXML($this->document->documentElement);
     }
 
@@ -253,7 +255,7 @@ XML
     public function testUnmarshallingWithWrongIsDefault(): void
     {
         $this->document->documentElement->setAttribute('isDefault', 'xxx');
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(AssertionFailedException::class);
         $this->expectExceptionMessage("The 'isDefault' attribute of md:AttributeConsumingService must be boolean.");
         AttributeConsumingService::fromXML($this->document->documentElement);
     }
@@ -265,7 +267,7 @@ XML
     public function testUnmarshallingWithNonNumericIndex(): void
     {
         $this->document->documentElement->setAttribute('index', 'x');
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(AssertionFailedException::class);
         $this->expectExceptionMessage('The \'index\' attribute of md:AttributeConsumingService must be numerical.');
         AttributeConsumingService::fromXML($this->document->documentElement);
     }
@@ -279,7 +281,7 @@ XML
         $name = $this->document->documentElement->getElementsByTagNameNS(Constants::NS_MD, 'ServiceName');
         /** @psalm-suppress PossiblyNullArgument */
         $this->document->documentElement->removeChild($name->item(0));
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(MissingElementException::class);
         $this->expectExceptionMessage('Missing at least one ServiceName in AttributeConsumingService.');
         AttributeConsumingService::fromXML($this->document->documentElement);
     }
@@ -293,7 +295,7 @@ XML
         $reqAttr = $this->document->documentElement->getElementsByTagNameNS(Constants::NS_MD, 'RequestedAttribute');
         /** @psalm-suppress PossiblyNullArgument */
         $this->document->documentElement->removeChild($reqAttr->item(0));
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(MissingElementException::class);
         $this->expectExceptionMessage('Missing at least one RequestedAttribute in AttributeConsumingService.');
         AttributeConsumingService::fromXML($this->document->documentElement);
     }

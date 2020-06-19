@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace SAML2\Assertion;
 
 use Psr\Log\LoggerInterface;
-use SAML2\Assertion;
+use SAML2\XML\saml\Assertion;
 use SAML2\Assertion\Exception\NotDecryptedException;
 use SAML2\Certificate\PrivateKeyLoader;
 use SAML2\Configuration\IdentityProvider;
 use SAML2\Configuration\ServiceProvider;
-use SAML2\EncryptedAssertion;
+use SAML2\XML\saml\EncryptedAssertion;
 
 class Decrypter
 {
@@ -38,10 +38,10 @@ class Decrypter
     /**
      * Constructor for Decrypter.
      *
-     * @param LoggerInterface $logger
-     * @param IdentityProvider $identityProvider
-     * @param ServiceProvider $serviceProvider
-     * @param PrivateKeyLoader $privateKeyLoader
+     * @param \Psr\Log\LoggerInterface $logger
+     * @param \SAML2\Configuration\IdentityProvider $identityProvider
+     * @param \SAML2\Configuration\ServiceProvider $serviceProvider
+     * @param \SAML2\Certificate\PrivateKeyLoader $privateKeyLoader
      */
     public function __construct(
         LoggerInterface $logger,
@@ -69,9 +69,9 @@ class Decrypter
 
 
     /**
-     * @param \SAML2\EncryptedAssertion $assertion
+     * @param \SAML2\XML\saml\EncryptedAssertion $assertion
      *
-     * @return \SAML2\Assertion
+     * @return \SAML2\XML\saml\Assertion
      */
     public function decrypt(EncryptedAssertion $assertion): Assertion
     {
@@ -85,7 +85,7 @@ class Decrypter
         // https://github.com/simplesamlphp/simplesamlphp/blob/3d735912342767d391297cc5e13272a76730aca0/modules/saml/lib/Message.php#L369
         foreach ($decryptionKeys as $index => $key) {
             try {
-                $decryptedAssertion = $assertion->getAssertion($key, $blacklistedKeys);
+                $decryptedAssertion = $assertion->decrypt($key, $blacklistedKeys);
                 $this->logger->debug(sprintf('Decrypted Assertion with key "#%d"', $index));
 
                 return $decryptedAssertion;

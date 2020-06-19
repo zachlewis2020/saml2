@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace SAML2\Assertion\Validation\ConstraintValidator;
 
-use SAML2\Assertion;
+use SAML2\XML\saml\Assertion;
 use SAML2\Assertion\Validation\AssertionConstraintValidator;
 use SAML2\Assertion\Validation\Result;
 use SAML2\Configuration\ServiceProvider;
 use SAML2\Configuration\ServiceProviderAware;
-use Webmozart\Assert\Assert;
+use SimpleSAML\Assert\Assert;
 
 class SpIsValidAudience implements
     AssertionConstraintValidator,
@@ -32,11 +32,11 @@ class SpIsValidAudience implements
 
 
     /**
-     * @param Assertion $assertion
-     * @param Result $result
+     * @param \SAML2\XML\saml\Assertion $assertion
+     * @param \SAML2\Assertion\Validation\Result $result
      * @return void
      *
-     * @throws \InvalidArgumentException if assertions are false
+     * @throws \SimpleSAML\Assert\AssertionFailedException if assertions are false
      */
     public function validate(Assertion $assertion, Result $result): void
     {

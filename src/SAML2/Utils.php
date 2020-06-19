@@ -8,6 +8,7 @@ use DOMDocument;
 use DOMElement;
 use DOMNode;
 use DOMXPath;
+use Exception;
 use InvalidArgumentException;
 use RobRichards\XMLSecLibs\XMLSecEnc;
 use RobRichards\XMLSecLibs\XMLSecurityDSig;
@@ -19,7 +20,7 @@ use SAML2\XML\ds\KeyInfo;
 use SAML2\XML\ds\X509Certificate;
 use SAML2\XML\ds\X509Data;
 use SAML2\XML\md\KeyDescriptor;
-use Webmozart\Assert\Assert;
+use SimpleSAML\Assert\Assert;
 
 /**
  * Helper functions for the SAML2 library.
@@ -63,7 +64,7 @@ class Utils
 
             return false;
         } elseif (count($signatureElement) > 1) {
-            throw new \Exception('XMLSec: more than one signature element in root.');
+            throw new Exception('XMLSec: more than one signature element in root.');
         }
         $signatureElement = $signatureElement[0];
         $objXMLSecDSig->sigNode = $signatureElement;
@@ -73,7 +74,7 @@ class Utils
 
         /* Validate referenced xml nodes. */
         if (!$objXMLSecDSig->validateReference()) {
-            throw new \Exception('XMLsec: digest validation failed');
+            throw new Exception('XMLsec: digest validation failed');
         }
 
         /* Check that $root is one of the signed nodes. */
@@ -83,14 +84,14 @@ class Utils
             if ($signedNode->isSameNode($root)) {
                 $rootSigned = true;
                 break;
-            } elseif ($root->parentNode instanceof \DOMDocument && $signedNode->isSameNode($root->ownerDocument)) {
+            } elseif ($root->parentNode instanceof DOMDocument && $signedNode->isSameNode($root->ownerDocument)) {
                 /* $root is the root element of a signed document. */
                 $rootSigned = true;
                 break;
             }
         }
         if (!$rootSigned) {
-            throw new \Exception('XMLSec: The root element is not signed.');
+            throw new Exception('XMLSec: The root element is not signed.');
         }
 
         /* Now we extract all available X509 certificates in the signature element. */
@@ -113,12 +114,12 @@ class Utils
     /**
      * Helper function to convert a XMLSecurityKey to the correct algorithm.
      *
-     * @param XMLSecurityKey $key The key.
+     * @param \RobRichards\XMLSecLibs\XMLSecurityKey $key The key.
      * @param string $algorithm The desired algorithm.
      * @param string $type Public or private key, defaults to public.
-     * @return XMLSecurityKey The new key.
+     * @return \RobRichards\XMLSecLibs\XMLSecurityKey The new key.
      *
-     * @throws \InvalidArgumentException if assertions are false
+     * @throws \SimpleSAML\Assert\AssertionFailedException if assertions are false
      */
     public static function castKey(XMLSecurityKey $key, string $algorithm, string $type = null): XMLSecurityKey
     {
@@ -143,16 +144,16 @@ class Utils
                 true
             )
         ) {
-            throw new \Exception('Unsupported signing algorithm.');
+            throw new Exception('Unsupported signing algorithm.');
         }
 
         /** @psalm-suppress PossiblyNullArgument */
         $keyInfo = openssl_pkey_get_details($key->key);
         if ($keyInfo === false) {
-            throw new \Exception('Unable to get key details from XMLSecurityKey.');
+            throw new Exception('Unable to get key details from XMLSecurityKey.');
         }
         if (!isset($keyInfo['key'])) {
-            throw new \Exception('Missing key in public key details.');
+            throw new Exception('Missing key in public key details.');
         }
 
         $newKey = new XMLSecurityKey($algorithm, ['type' => $type]);
@@ -168,11 +169,11 @@ class Utils
      * An exception is thrown if we are unable to validate the signature.
      *
      * @param array $info The information returned by the validateElement() function.
-     * @param XMLSecurityKey $key The publickey that should validate the Signature object.
+     * @param \RobRichards\XMLSecLibs\XMLSecurityKey $key The publickey that should validate the Signature object.
      * @throws \Exception
      * @return void
      *
-     * @throws \InvalidArgumentException if assertions are false
+     * @throws \SimpleSAML\Assert\AssertionFailedException if assertions are false
      */
     public static function validateSignature(array $info, XMLSecurityKey $key): void
     {
@@ -180,18 +181,18 @@ class Utils
 
         /** @var XMLSecurityDSig $objXMLSecDSig */
         $objXMLSecDSig = $info['Signature'];
-        
+
         /**
          * @var \DOMElement[] $sigMethod
          * @var \DOMElement $objXMLSecDSig->sigNode
          */
         $sigMethod = self::xpQuery($objXMLSecDSig->sigNode, './ds:SignedInfo/ds:SignatureMethod');
         if (empty($sigMethod)) {
-            throw new \Exception('Missing SignatureMethod element.');
+            throw new Exception('Missing SignatureMethod element.');
         }
         $sigMethod = $sigMethod[0];
         if (!$sigMethod->hasAttribute('Algorithm')) {
-            throw new \Exception('Missing Algorithm-attribute on SignatureMethod element.');
+            throw new Exception('Missing Algorithm-attribute on SignatureMethod element.');
         }
         $algo = $sigMethod->getAttribute('Algorithm');
 
@@ -201,7 +202,7 @@ class Utils
 
         /* Check the signature. */
         if ($objXMLSecDSig->verify($key) !== 1) {
-            throw new \Exception("Unable to validate Signature");
+            throw new Exception("Unable to validate Signature");
         }
     }
 
@@ -289,39 +290,9 @@ class Utils
 
 
     /**
-     * Parse a boolean attribute.
-     *
-     * @param \DOMElement $node The element we should fetch the attribute from.
-     * @param string $attributeName The name of the attribute.
-     * @param mixed|null $default The value that should be returned if the attribute doesn't exist.
-     * @return bool|mixed The value of the attribute, or $default if the attribute doesn't exist.
-     */
-    public static function parseBoolean(DOMElement $node, string $attributeName, $default = null)
-    {
-        if (!$node->hasAttribute($attributeName)) {
-            return $default;
-        }
-        $value = $node->getAttribute($attributeName);
-        switch (strtolower($value)) {
-            case '0':
-            case 'false':
-                return false;
-            case '1':
-            case 'true':
-                return true;
-            default:
-                throw new \Exception(
-                    'Invalid value of boolean attribute ' . var_export($attributeName, true) . ': ' .
-                    var_export($value, true)
-                );
-        }
-    }
-
-
-    /**
      * Insert a Signature node.
      *
-     * @param XMLSecurityKey $key The key we should use to sign the message.
+     * @param \RobRichards\XMLSecLibs\XMLSecurityKey $key The key we should use to sign the message.
      * @param array $certificates The certificates we should add to the signature node.
      * @param \DOMElement $root The XML node we should sign.
      * @param \DOMNode $insertBefore  The XML element we should insert the signature element before.
@@ -373,7 +344,7 @@ class Utils
      * This is an internal helper function.
      *
      * @param \DOMElement $encryptedData The encrypted data.
-     * @param XMLSecurityKey $inputKey The decryption key.
+     * @param \RobRichards\XMLSecLibs\XMLSecurityKey $inputKey The decryption key.
      * @param array &$blacklist Blacklisted decryption algorithms.
      * @throws \Exception
      * @return \DOMElement The decrypted element.
@@ -390,12 +361,12 @@ class Utils
 
         $symmetricKey = $enc->locateKey($encryptedData);
         if (!$symmetricKey) {
-            throw new \Exception('Could not locate key algorithm in encrypted data.');
+            throw new Exception('Could not locate key algorithm in encrypted data.');
         }
 
         $symmetricKeyInfo = $enc->locateKeyInfo($symmetricKey);
         if (!$symmetricKeyInfo) {
-            throw new \Exception('Could not locate <dsig:KeyInfo> for the encrypted key.');
+            throw new Exception('Could not locate <dsig:KeyInfo> for the encrypted key.');
         }
 
         $inputKeyAlgo = $inputKey->getAlgorithm();
@@ -403,7 +374,7 @@ class Utils
             $symKeyInfoAlgo = $symmetricKeyInfo->getAlgorithm();
 
             if (in_array($symKeyInfoAlgo, $blacklist, true)) {
-                throw new \Exception('Algorithm disabled: ' . var_export($symKeyInfoAlgo, true));
+                throw new Exception('Algorithm disabled: ' . var_export($symKeyInfoAlgo, true));
             }
 
             if ($symKeyInfoAlgo === XMLSecurityKey::RSA_OAEP_MGF1P && $inputKeyAlgo === XMLSecurityKey::RSA_1_5) {
@@ -418,7 +389,7 @@ class Utils
 
             /* Make sure that the input key format is the same as the one used to encrypt the key. */
             if ($inputKeyAlgo !== $symKeyInfoAlgo) {
-                throw new \Exception(
+                throw new Exception(
                     'Algorithm mismatch between input key and key used to encrypt ' .
                     ' the symmetric key for the message. Key was: ' .
                     var_export($inputKeyAlgo, true) . '; message was: ' .
@@ -435,7 +406,7 @@ class Utils
                 /* To protect against "key oracle" attacks, we need to be able to create a
                  * symmetric key, and for that we need to know the key size.
                  */
-                throw new \Exception(
+                throw new Exception(
                     'Unknown key size for encryption algorithm: ' . var_export($symmetricKey->type, true)
                 );
             }
@@ -447,12 +418,12 @@ class Utils
                  */
                 $key = $encKey->decryptKey($symmetricKeyInfo);
                 if (strlen($key) !== $keySize) {
-                    throw new \Exception(
+                    throw new Exception(
                         'Unexpected key size (' . strval(strlen($key) * 8) . 'bits) for encryption algorithm: ' .
                         var_export($symmetricKey->type, true)
                     );
                 }
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
                 /* We failed to decrypt this key. Log it, and substitute a "random" key. */
                 Utils::getContainer()->getLogger()->error('Failed to decrypt symmetric key: ' . $e->getMessage());
                 /* Create a replacement key, so that it looks like we fail in the same way as if the key was correctly
@@ -463,7 +434,7 @@ class Utils
                  */
                 $encryptedKey = $encKey->getCipherValue();
                 if ($encryptedKey === null) {
-                    throw new \Exception('No CipherValue available in the encrypted element.');
+                    throw new Exception('No CipherValue available in the encrypted element.');
                 }
 
                 /** @psalm-suppress PossiblyNullArgument */
@@ -483,7 +454,7 @@ class Utils
             $symKeyAlgo = $symmetricKey->getAlgorithm();
             /* Make sure that the input key has the correct format. */
             if ($inputKeyAlgo !== $symKeyAlgo) {
-                throw new \Exception(
+                throw new Exception(
                     'Algorithm mismatch between input key and key in message. ' .
                     'Key was: ' . var_export($inputKeyAlgo, true) . '; message was: ' .
                     var_export($symKeyAlgo, true)
@@ -494,7 +465,7 @@ class Utils
 
         $algorithm = $symmetricKey->getAlgorithm();
         if (in_array($algorithm, $blacklist, true)) {
-            throw new \Exception('Algorithm disabled: ' . var_export($algorithm, true));
+            throw new Exception('Algorithm disabled: ' . var_export($algorithm, true));
         }
 
         /**
@@ -515,13 +486,13 @@ class Utils
         try {
             $newDoc = DOMDocumentFactory::fromString($xml);
         } catch (RuntimeException $e) {
-            throw new \Exception('Failed to parse decrypted XML. Maybe the wrong sharedkey was used?', 0, $e);
+            throw new Exception('Failed to parse decrypted XML. Maybe the wrong sharedkey was used?', 0, $e);
         }
 
         /** @psalm-suppress PossiblyNullPropertyFetch */
         $decryptedElement = $newDoc->firstChild->firstChild;
         if (!($decryptedElement instanceof DOMElement)) {
-            throw new \Exception('Missing decrypted element or it was not actually a DOMElement.');
+            throw new Exception('Missing decrypted element or it was not actually a DOMElement.');
         }
 
         return $decryptedElement;
@@ -532,7 +503,7 @@ class Utils
      * Decrypt an encrypted element.
      *
      * @param \DOMElement $encryptedData The encrypted data.
-     * @param XMLSecurityKey $inputKey The decryption key.
+     * @param \RobRichards\XMLSecLibs\XMLSecurityKey $inputKey The decryption key.
      * @param array $blacklist Blacklisted decryption algorithms.
      * @throws \Exception
      * @return \DOMElement The decrypted element.
@@ -544,13 +515,13 @@ class Utils
     ): DOMElement {
         try {
             return self::doDecryptElement($encryptedData, $inputKey, $blacklist);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             /*
              * Something went wrong during decryption, but for security
              * reasons we cannot tell the user what failed.
              */
             Utils::getContainer()->getLogger()->error('Decryption failed: ' . $e->getMessage());
-            throw new \Exception('Failed to decrypt XML element.', 0, $e);
+            throw new Exception('Failed to decrypt XML element.', 0, $e);
         }
     }
 
