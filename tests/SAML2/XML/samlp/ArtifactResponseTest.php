@@ -74,6 +74,7 @@ XML
             null,
             null,
             $assertionConsumerServiceURL,
+            null,
             $protocolBinding,
             null,
             null,

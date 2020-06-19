@@ -239,9 +239,7 @@ AUTHNREQUEST;
         $destination = 'https://tiqr.example.org/idp/profile/saml2/Redirect/SSO';
 
         // basic AuthnRequest
-        $request = new AuthnRequest(null, new Subject($nameId), null, null, null, null, null, null, null, null, $issuer, null, null, $destination);
-
-
+        $request = new AuthnRequest(null, new Subject($nameId), null, null, null, null, null, null, null, null, null, $issuer, null, null, $destination);
 
         $expectedXml = <<<AUTHNREQUEST
 <samlp:AuthnRequest
@@ -302,7 +300,7 @@ AUTHNREQUEST;
         );
 
         // basic AuthnRequest
-        $request = new AuthnRequest(null, null, null, null, null, null, null, null, null, null, $issuer, null, null, $destination, null, null, $scoping);
+        $request = new AuthnRequest(null, null, null, null, null, null, null, null, null, null, null, $issuer, null, null, $destination, null, null, $scoping);
 
         $expectedStructureDocument = <<<AUTHNREQUEST
 <samlp:AuthnRequest
@@ -452,7 +450,7 @@ AUTHNREQUEST;
         );
 
         // basic AuthnRequest
-        $request = new AuthnRequest(null, null, $nameIdPolicy, null, null, null, null, null, null, null, $issuer, null, $issueInstant, $destination);
+        $request = new AuthnRequest(null, null, $nameIdPolicy, null, null, null, null, null, null, null, null, $issuer, null, $issueInstant, $destination);
 
         $expectedStructureDocument = <<<AUTHNREQUEST
 <samlp:AuthnRequest
@@ -493,7 +491,7 @@ AUTHNREQUEST;
         $nameIdPolicy = new NameIDPolicy(Constants::NAMEID_TRANSIENT);
 
         // basic AuthnRequest
-        $request = new AuthnRequest(null, null, $nameIdPolicy, null, null, null, null, null, null, null, $issuer, null, $issueInstant, $destination);
+        $request = new AuthnRequest(null, null, $nameIdPolicy, null, null, null, null, null, null, null, null, $issuer, null, $issueInstant, $destination);
 
         $expectedStructureDocument = <<<AUTHNREQUEST
 <samlp:AuthnRequest
@@ -576,7 +574,7 @@ AUTHNREQUEST;
         $forceAuthn = true;
 
         // basic AuthnRequest
-        $request = new AuthnRequest(null, null, null, null, $forceAuthn, null, null, null, null, null, $issuer, null, $issueInstant, $destination);
+        $request = new AuthnRequest(null, null, null, null, $forceAuthn, null, null, null, null, null, null, $issuer, null, $issueInstant, $destination);
 
         $expectedStructureDocument = <<<AUTHNREQUEST
 <samlp:AuthnRequest
@@ -676,7 +674,7 @@ AUTHNREQUEST;
         $isPassive = true;
 
         // basic AuthnRequest
-        $request = new AuthnRequest(null, null, null, null, null, $isPassive, null, null, null, null, $issuer, null, $issueInstant, $destination);
+        $request = new AuthnRequest(null, null, null, null, null, $isPassive, null, null, null, null, null, $issuer, null, $issueInstant, $destination);
 
         $expectedStructureDocument = <<<AUTHNREQUEST
 <samlp:AuthnRequest
@@ -714,7 +712,7 @@ AUTHNREQUEST;
         $providerName = "My Example SP";
 
         // basic AuthnRequest
-        $request = new AuthnRequest(null, null, null, null, null, null, null, null, null, $providerName, $issuer, null, $issueInstant, $destination);
+        $request = new AuthnRequest(null, null, null, null, null, null, null, null, null, null, $providerName, $issuer, null, $issueInstant, $destination);
 
         $expectedStructureDocument = <<<AUTHNREQUEST
 <samlp:AuthnRequest
@@ -780,7 +778,7 @@ AUTHNREQUEST;
         $assertionConsumerServiceURL = "https://sp.example.org/authentication/sp/consume-assertion";
 
         // basic AuthnRequest
-        $request = new AuthnRequest(null, null, null, null, null, null, $assertionConsumerServiceURL, $protocolBinding, null, null, $issuer, null, $issueInstant, $destination);
+        $request = new AuthnRequest(null, null, null, null, null, null, $assertionConsumerServiceURL, null, $protocolBinding, null, null, $issuer, null, $issueInstant, $destination);
 
         $expectedStructureDocument = <<<AUTHNREQUEST
 <samlp:AuthnRequest
@@ -914,7 +912,7 @@ AUTHNREQUEST;
         );
 
         // basic AuthnRequest
-        $request = new AuthnRequest(null, null, null, $conditions, null, null, null, null, null, null, $issuer, null, null, $destination);
+        $request = new AuthnRequest(null, null, null, $conditions, null, null, null, null, null, null, null, $issuer, null, null, $destination);
 
         $expectedStructureDocument = <<<AUTHNREQUEST
 <samlp:AuthnRequest
