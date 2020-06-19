@@ -30,88 +30,6 @@ use SimpleSAML\Assert\Assert;
 class Utils
 {
     /**
-     * Check the Signature in a XML element.
-     *
-     * This function expects the XML element to contain a Signature element
-     * which contains a reference to the XML-element. This is common for both
-     * messages and assertions.
-     *
-     * Note that this function only validates the element itself. It does not
-     * check this against any local keys.
-     *
-     * If no Signature-element is located, this function will return false. All
-     * other validation errors result in an exception. On successful validation
-     * an array will be returned. This array contains the information required to
-     * check the signature against a public key.
-     *
-     * @param \DOMElement $root The element which should be validated.
-     * @throws \Exception
-     * @return array|false An array with information about the Signature element.
-     */
-    public static function validateElement(DOMElement $root)
-    {
-        /* Create an XML security object. */
-        $objXMLSecDSig = new XMLSecurityDSig();
-
-        /* Both SAML messages and SAML assertions use the 'ID' attribute. */
-        $objXMLSecDSig->idKeys[] = 'ID';
-
-        /* Locate the XMLDSig Signature element to be used. */
-        /** @var \DOMElement[] $signatureElement */
-        $signatureElement = self::xpQuery($root, './ds:Signature');
-        if (empty($signatureElement)) {
-            /* We don't have a signature element ot validate. */
-
-            return false;
-        } elseif (count($signatureElement) > 1) {
-            throw new Exception('XMLSec: more than one signature element in root.');
-        }
-        $signatureElement = $signatureElement[0];
-        $objXMLSecDSig->sigNode = $signatureElement;
-
-        /* Canonicalize the XMLDSig SignedInfo element in the message. */
-        $objXMLSecDSig->canonicalizeSignedInfo();
-
-        /* Validate referenced xml nodes. */
-        if (!$objXMLSecDSig->validateReference()) {
-            throw new Exception('XMLsec: digest validation failed');
-        }
-
-        /* Check that $root is one of the signed nodes. */
-        $rootSigned = false;
-        /** @var \DOMNode $signedNode */
-        foreach ($objXMLSecDSig->getValidatedNodes() as $signedNode) {
-            if ($signedNode->isSameNode($root)) {
-                $rootSigned = true;
-                break;
-            } elseif ($root->parentNode instanceof DOMDocument && $signedNode->isSameNode($root->ownerDocument)) {
-                /* $root is the root element of a signed document. */
-                $rootSigned = true;
-                break;
-            }
-        }
-        if (!$rootSigned) {
-            throw new Exception('XMLSec: The root element is not signed.');
-        }
-
-        /* Now we extract all available X509 certificates in the signature element. */
-        $certificates = [];
-        foreach (self::xpQuery($signatureElement, './ds:KeyInfo/ds:X509Data/ds:X509Certificate') as $certNode) {
-            $certData = trim($certNode->textContent);
-            $certData = str_replace(["\r", "\n", "\t", ' '], '', $certData);
-            $certificates[] = $certData;
-        }
-
-        $ret = [
-            'Signature' => $objXMLSecDSig,
-            'Certificates' => $certificates,
-        ];
-
-        return $ret;
-    }
-
-
-    /**
      * Helper function to convert a XMLSecurityKey to the correct algorithm.
      *
      * @param \RobRichards\XMLSecLibs\XMLSecurityKey $key The key.
@@ -161,50 +79,6 @@ class Utils
 
         return $newKey;
     }
-
-
-    /**
-     * Check a signature against a key.
-     *
-     * An exception is thrown if we are unable to validate the signature.
-     *
-     * @param array $info The information returned by the validateElement() function.
-     * @param \RobRichards\XMLSecLibs\XMLSecurityKey $key The publickey that should validate the Signature object.
-     * @throws \Exception
-     * @return void
-     *
-     * @throws \SimpleSAML\Assert\AssertionFailedException if assertions are false
-     */
-//    public static function validateSignature(array $info, XMLSecurityKey $key): void
-//    {
-//        Assert::keyExists($info, "Signature");
-
-        /** @var XMLSecurityDSig $objXMLSecDSig */
-//        $objXMLSecDSig = $info['Signature'];
-
-        /**
-         * @var \DOMElement[] $sigMethod
-         * @var \DOMElement $objXMLSecDSig->sigNode
-         */
-//        $sigMethod = self::xpQuery($objXMLSecDSig->sigNode, './ds:SignedInfo/ds:SignatureMethod');
-//        if (empty($sigMethod)) {
-//            throw new Exception('Missing SignatureMethod element.');
-//        }
-//        $sigMethod = $sigMethod[0];
-//        if (!$sigMethod->hasAttribute('Algorithm')) {
-//            throw new Exception('Missing Algorithm-attribute on SignatureMethod element.');
-//        }
-//        $algo = $sigMethod->getAttribute('Algorithm');
-
-//        if ($key->type === XMLSecurityKey::RSA_SHA256 && $algo !== $key->type) {
-//            $key = self::castKey($key, $algo);
-//        }
-
-        /* Check the signature. */
-//        if ($objXMLSecDSig->verify($key) !== 1) {
-//            throw new Exception("Unable to validate Signature");
-//        }
-//    }
 
 
     /**
