@@ -6,6 +6,7 @@ namespace SAML2\XML\saml;
 
 use DOMElement;
 use SAML2\Exception\InvalidDOMElementException;
+use SAML2\Exception\MissingAttributeException;
 use SAML2\Exception\MissingElementException;
 use SAML2\Utils;
 use SimpleSAML\Assert\Assert;
